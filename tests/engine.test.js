@@ -429,9 +429,32 @@ test('unrecognised questions return unknown rather than a guess', () => {
 });
 
 test('missingCritical lists exactly the blank terminal answers', () => {
-  const a = answers.defaultAnswers({ workAuthCanada: 'Yes', sponsorship: 'No',
-    workAuthUS: 'No', citizenship: 'Citizen', securityClearance: 'No', salaryExpectation: '95000' });
-  assert.deepEqual(answers.missingCritical(a), []);
+  // Sponsorship is stored per region, because a Canadian citizen needs none
+  // in Canada and does need one in the US.
+  const complete = { workAuthCanada: 'Yes', workAuthUS: 'No',
+    sponsorshipCanada: 'No', sponsorshipUS: 'Yes',
+    citizenship: 'Canadian citizen', securityClearance: 'No', salaryExpectation: '95000' };
+  assert.deepEqual(answers.missingCritical(answers.defaultAnswers(complete)), []);
+
+  const { sponsorshipUS, ...partial } = complete;
+  assert.ok(answers.missingCritical(answers.defaultAnswers(partial)).includes('sponsorshipUS'));
+});
+
+test('sponsorship is answered per posting region', () => {
+  const p = { sponsorshipCanada: 'No', sponsorshipUS: 'Yes' };
+  const ca = answers.defaultAnswers(p, {}, { region: 'CA' });
+  const us = answers.defaultAnswers(p, {}, { region: 'US' });
+  const q = 'Will you now or in the future require sponsorship for employment visa status?';
+  assert.equal(answers.answerFor(q, ca).value, 'No');
+  assert.equal(answers.answerFor(q, us).value, 'Yes');
+});
+
+test('consent controls are recognised even with no readable label', () => {
+  const a = answers.defaultAnswers({});
+  for (const q of ['gdpr demographic data consent given', 'Privacy Policy Acknowledgement',
+                   'I agree to the terms']) {
+    assert.equal(answers.answerFor(q, a).status, 'consent', q);
+  }
 });
 
 /* ═══════ COVER LETTER ═══════ */

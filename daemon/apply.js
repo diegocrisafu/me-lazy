@@ -74,8 +74,16 @@ async function fillField(page, handle, answers, ctx) {
   if (info.type === 'file') return null;            // handled separately
   if (info.value && info.value.trim()) return null; // never overwrite
 
-  const label = await labelFor(page, handle);
-  if (!label) return null;
+  let label = await labelFor(page, handle);
+
+  // Consent controls frequently carry no readable label at all — only a name
+  // like "gdpr_demographic_data_consent_given". Fall back to the name so the
+  // control is still recognised rather than silently left blocking the form.
+  if (!label) {
+    const raw = (info.name || '').replace(/[_\[\]]+/g, ' ').trim();
+    if (!raw) return null;
+    label = raw;
+  }
 
   const r = ANSWERS.answerFor(label, answers);
 
@@ -225,7 +233,7 @@ async function fillCombobox(page, input, value) {
   await input.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {});
   const opened = await input.click({ timeout: 3000 }).then(() => true).catch(() => false);
   if (!opened) return '';
-  await page.waitForTimeout(300);
+  await page.waitForTimeout(180);
 
   // Open the menu first and look at what the form actually offers. Typing the
   // full answer filters a curated list down to nothing — "Bachelor's, Computer
@@ -234,8 +242,8 @@ async function fillCombobox(page, input, value) {
 
   // A long, search-driven menu (schools, cities) needs narrowing first.
   if (options.length === 0 || options.length > 60) {
-    await page.keyboard.type(searchKey(want), { delay: 12 });
-    await page.waitForTimeout(650);
+    await page.keyboard.type(searchKey(want), { delay: 8 });
+    await page.waitForTimeout(450);
     options = await readOptions(page);
   }
 
@@ -258,7 +266,7 @@ async function fillCombobox(page, input, value) {
   }
 
   await best.el.click({ timeout: 3000 }).catch(() => {});
-  await page.waitForTimeout(350);
+  await page.waitForTimeout(220);
   return readComboValue(page, input);
 }
 
@@ -319,6 +327,8 @@ async function fillChoiceGroups(page, answers, ctx) {
         const l = node.querySelector('legend, label:not([for]), [class*="label"]');
         if (l && !l.querySelector('input')) question = clean(l.textContent);
       }
+      // Fall back to the group name for unlabelled consent controls.
+      if (!question) question = name.replace(/[_\[\]]+/g, ' ').trim();
       const options = els.map(el => {
         const own = el.closest('label');
         const forLab = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null;
@@ -486,7 +496,8 @@ async function findSubmit(page) {
  */
 async function applyTo(ctxBrowser, record, opts = {}) {
   const settings = opts.settings || store.getSettings();
-  const answers = ANSWERS.defaultAnswers(settings.profile || {}, opts.cvFacts || {});
+  const answers = ANSWERS.defaultAnswers(settings.profile || {}, opts.cvFacts || {},
+                                         { region: record.region });
   const dryRun = Boolean(opts.dryRun);
 
   const dir = store.artifactDir(record);
@@ -506,7 +517,7 @@ async function applyTo(ctxBrowser, record, opts = {}) {
   page.setDefaultTimeout(8000);
   const shots = [];
   const filled = [];
-  const deadline = Date.now() + (opts.budgetMs || 240000);
+  const deadline = Date.now() + (opts.budgetMs || 420000);
 
   try {
     const formUrl = await openForm(page, record);
@@ -601,7 +612,9 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     let blocked = null;
     let submitted = false;
 
-    if (criticalGaps.length) {
+    if (!filled.length) {
+      blocked = 'no form found on the page — nothing was filled';
+    } else if (criticalGaps.length) {
       blocked = 'unanswered: ' + criticalGaps.map(s => s.label).join('; ');
     } else if (ctx.requiredStillEmpty && ctx.requiredStillEmpty.length) {
       // Submitting a form the page itself considers incomplete either fails

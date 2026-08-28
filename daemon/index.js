@@ -76,7 +76,7 @@ async function applyOne(id, settings = store.getSettings()) {
   if (!rec) return { ok: false, error: 'unknown application' };
 
   const cv = CV_PROFILES.find(p => p.id === rec.cvId);
-  const ans = answers.defaultAnswers(settings.profile || {}, cv?.facts || {});
+  const ans = answers.defaultAnswers(settings.profile || {}, cv?.facts || {}, { region: rec.region });
   const missing = answers.missingCritical(ans);
 
   const check = runner.applyability(

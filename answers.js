@@ -131,7 +131,7 @@ const ANSWER_RULES = [
   /* Consent and acknowledgement. Required, and answering "Yes" is the only
      way to proceed — a form cannot be submitted while consent is unchecked. */
   { id: 'consent', consent: true,
-    re: /privacy|consent|acknowledg|i\s*agree|terms|gdpr|data\s*protection|certify|confirm\s*that\s*the\s*(?:above|information)/i },
+    re: /privacy|consent|acknowledg|i\s*agree|terms|gdpr|data\s*protection|certify|confirm\s*that\s*the\s*(?:above|information)|opt\s*in|permission\s*to/i },
 
   /* ── Free text ── */
   { id: 'whyCompany', longform: true,
@@ -156,7 +156,12 @@ const MONTHS = ['January','February','March','April','May','June',
                 'July','August','September','October','November','December'];
 
 /** Defaults filled in from the CV facts, overridable in the popup. */
-function defaultAnswers(profile = {}, cvFacts = {}) {
+/**
+ * @param {object} profile
+ * @param {object} cvFacts
+ * @param {object} [ctx]   { region: 'CA' | 'US' } — the posting's country
+ */
+function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
   const first = profile.firstName || 'Diego';
   const last  = profile.lastName  || 'Crisafulli';
   return {
@@ -193,7 +198,14 @@ function defaultAnswers(profile = {}, cvFacts = {}) {
     // Eligibility — no defaults invented; these must be set explicitly.
     workAuthCanada: profile.workAuthCanada ?? '',
     workAuthUS: profile.workAuthUS ?? '',
-    sponsorship: profile.sponsorship ?? '',
+    // A Canadian citizen needs no sponsorship in Canada and does need it in
+    // the US. Answering with one value for both is a false statement on
+    // whichever half it does not fit, so it resolves per posting.
+    sponsorship: (ctx.region === 'US'
+      ? (profile.sponsorshipUS ?? profile.sponsorship)
+      : (profile.sponsorshipCanada ?? profile.sponsorship)) ?? '',
+    sponsorshipCanada: profile.sponsorshipCanada ?? '',
+    sponsorshipUS: profile.sponsorshipUS ?? '',
     citizenship: profile.citizenship ?? '',
     securityClearance: profile.securityClearance ?? '',
     over18: profile.over18 || 'Yes',
@@ -274,7 +286,14 @@ function answerFor(question, answers = {}, opts = {}) {
 /** Which stored answers are still blank — surfaced in the popup. */
 function missingCritical(answers = {}) {
   const criticalFields = ANSWER_RULES.filter(r => r.critical && r.from).map(r => r.from);
-  return [...new Set(criticalFields)].filter(f => !answers[f]);
+  const needed = [...new Set(criticalFields)]
+    // Resolved per posting from the two region-specific values below.
+    .filter(f => f !== 'sponsorship');
+  const missing = needed.filter(f => !answers[f]);
+  for (const f of ['sponsorshipCanada', 'sponsorshipUS']) {
+    if (!answers[f]) missing.push(f);
+  }
+  return missing;
 }
 
 const __answers = { ANSWER_RULES, defaultAnswers, answerFor, missingCritical };
