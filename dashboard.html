@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Application Command Center</title>
+<link rel="stylesheet" href="dashboard.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark"></span>
+    <div>
+      <h1>Application Command Center</h1>
+      <p class="brand-sub">Internship &amp; new-grad pipeline · Canada first</p>
+    </div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-ghost" id="btn-verify">Verify sources</button>
+    <button class="btn btn-ghost" id="btn-export">Export CSV</button>
+    <button class="btn btn-primary" id="btn-hunt">
+      <span id="hunt-label">Run hunt</span>
+    </button>
+    <button class="btn btn-runner" id="btn-runner">
+      <span class="runner-dot" id="runner-dot"></span>
+      <span id="runner-label">Auto-apply off</span>
+    </button>
+  </div>
+</header>
+
+<!-- Run progress -->
+<div class="runbar" id="runbar" hidden>
+  <div class="runbar-track"><div class="runbar-fill" id="runbar-fill"></div></div>
+  <span class="runbar-text" id="runbar-text">Starting…</span>
+</div>
+
+<!-- Runner status -->
+<div class="runner-bar" id="runner-bar" hidden>
+  <span class="runner-state" id="runner-state">—</span>
+  <span class="runner-sep">·</span>
+  <span id="runner-today">0 sent today</span>
+  <span class="runner-sep">·</span>
+  <span id="runner-next">—</span>
+</div>
+
+<section class="alert" id="conflict-alert" hidden>
+  <div class="alert-head">
+    <strong>CV claim rules</strong>
+    <button class="alert-toggle" id="conflict-toggle">Details</button>
+  </div>
+  <p class="alert-body" id="conflict-summary"></p>
+  <div class="conflict-list" id="conflict-list" hidden></div>
+</section>
+
+<!-- Headline metrics -->
+<section class="metrics">
+  <div class="metric metric-hero">
+    <span class="metric-value" id="m-oa">0</span>
+    <span class="metric-label">Assessments received</span>
+    <span class="metric-sub" id="m-oa-rate">—</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value" id="m-queued">0</span>
+    <span class="metric-label">Queued</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value" id="m-applied">0</span>
+    <span class="metric-label">Applied</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value" id="m-interview">0</span>
+    <span class="metric-label">Interviews</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value" id="m-offers">0</span>
+    <span class="metric-label">Offers</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value" id="m-response">0%</span>
+    <span class="metric-label">Response rate</span>
+  </div>
+  <div class="metric">
+    <span class="metric-value" id="m-ttoa">—</span>
+    <span class="metric-label">Median days to OA</span>
+  </div>
+</section>
+
+<!-- CV performance: which variant is actually earning assessments -->
+<section class="panel">
+  <div class="panel-head">
+    <h2>CV variant performance</h2>
+    <span class="panel-hint">Which resume is actually earning assessments</span>
+  </div>
+  <div class="cv-grid" id="cv-grid"></div>
+</section>
+
+<nav class="tabs">
+  <button class="tab tab-active" data-view="queue">Queue <span class="tab-count" id="tab-queue-count">0</span></button>
+  <button class="tab" data-view="applications">Applications <span class="tab-count" id="tab-apps-count">0</span></button>
+  <button class="tab" data-view="scouting">Scouting Report <span class="tab-count" id="tab-scout-count">0</span></button>
+  <button class="tab" data-view="companies">Companies</button>
+  <button class="tab" data-view="sources">Sources</button>
+</nav>
+
+<!-- Filters -->
+<div class="filters" id="filters">
+  <input type="search" id="f-search" class="input" placeholder="Search title or company…" />
+  <select id="f-region" class="input">
+    <option value="">All regions</option>
+    <option value="CA">Canada</option>
+    <option value="US">United States</option>
+  </select>
+  <select id="f-level" class="input">
+    <option value="">All levels</option>
+    <option value="intern">Internship</option>
+    <option value="newgrad">New grad</option>
+  </select>
+  <select id="f-cv" class="input"><option value="">All CVs</option></select>
+  <select id="f-status" class="input"><option value="">All statuses</option></select>
+  <label class="check"><input type="checkbox" id="f-paid" /> Confirmed ≥ $90k only</label>
+</div>
+
+<!-- QUEUE -->
+<section class="view" id="view-queue">
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="col-prio">Priority</th>
+          <th>Role</th>
+          <th>Company</th>
+          <th>Location</th>
+          <th>Level</th>
+          <th>Pay</th>
+          <th>CV chosen</th>
+          <th>Assessment</th>
+          <th class="col-act">Action</th>
+        </tr>
+      </thead>
+      <tbody id="queue-body"></tbody>
+    </table>
+  </div>
+  <p class="empty" id="queue-empty" hidden>No queued roles. Run a hunt to populate the queue.</p>
+</section>
+
+<!-- APPLICATIONS -->
+<section class="view" id="view-applications" hidden>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Role</th>
+          <th>Company</th>
+          <th>CV used</th>
+          <th>Applied</th>
+          <th>Status</th>
+          <th>OA</th>
+          <th>Pay</th>
+          <th class="col-act">Action</th>
+        </tr>
+      </thead>
+      <tbody id="apps-body"></tbody>
+    </table>
+  </div>
+  <p class="empty" id="apps-empty" hidden>Nothing applied to yet.</p>
+</section>
+
+
+<!-- SCOUTING REPORT — roles the runner will not submit for you -->
+<section class="view" id="view-scouting" hidden>
+  <div class="scout-intro">
+    <h2>Roles worth your own time</h2>
+    <p>Everything here cleared the pay and level filters but cannot be submitted unattended — most often because the employer runs Workday, which needs an account per company. Each entry has the link, why it was flagged, which CV to attach, and enough of the posting to judge it.</p>
+  </div>
+  <div class="scout-list" id="scout-list"></div>
+  <p class="empty" id="scout-empty" hidden>Nothing flagged. Run a hunt to populate the report.</p>
+</section>
+
+<!-- COMPANIES -->
+<section class="view" id="view-companies" hidden>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Company</th><th>Sector</th><th>Country</th><th>Applied</th><th>OAs</th><th>OA rate</th><th>Expected</th></tr>
+      </thead>
+      <tbody id="companies-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- SOURCES -->
+<section class="view" id="view-sources" hidden>
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr><th>Company</th><th>Country</th><th>ATS</th><th>Status</th><th>Jobs seen</th><th>Expected OA</th></tr>
+      </thead>
+      <tbody id="sources-body"></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- Detail drawer -->
+<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+<aside class="drawer" id="drawer" hidden>
+  <div class="drawer-head">
+    <div>
+      <h3 id="d-title">—</h3>
+      <p id="d-company" class="drawer-sub">—</p>
+    </div>
+    <button class="drawer-close" id="drawer-close" aria-label="Close">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="d-meta" id="d-meta"></div>
+
+    <div class="d-section">
+      <h4>CV selection</h4>
+      <div class="cv-choice" id="d-cv-choice"></div>
+      <p class="cv-reason" id="d-cv-reason"></p>
+      <div class="cv-bars" id="d-cv-bars"></div>
+    </div>
+
+    <div class="d-section">
+      <h4>Status</h4>
+      <select id="d-status" class="input input-full"></select>
+      <textarea id="d-notes" class="input input-full" rows="3" placeholder="Notes…"></textarea>
+      <button class="btn btn-primary btn-full" id="d-save">Save</button>
+    </div>
+
+    <div class="d-section">
+      <h4>Cover letter</h4>
+      <button class="btn btn-sm" id="d-letter-btn">Generate for this role</button>
+      <pre class="d-desc" id="d-letter" hidden></pre>
+    </div>
+
+    <div class="d-section">
+      <h4>Posting</h4>
+      <a id="d-link" class="d-link" target="_blank" rel="noopener">Open original posting ↗</a>
+      <pre class="d-desc" id="d-desc"></pre>
+    </div>
+  </div>
+</aside>
+
+<script src="cv-profiles.js"></script>
+<script src="tracker.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

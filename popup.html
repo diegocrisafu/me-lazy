@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="stylesheet" href="popup.css" />
+<title>Application Command Center</title>
+</head>
+<body>
+<header class="head">
+  <span class="mark"></span>
+  <div>
+    <h1>Command Center</h1>
+    <p id="sub">—</p>
+  </div>
+</header>
+
+<div class="stats">
+  <div class="stat"><b id="s-queued">0</b><span>Queued</span></div>
+  <div class="stat"><b id="s-applied">0</b><span>Applied</span></div>
+  <div class="stat stat-hero"><b id="s-oa">0</b><span>OAs</span></div>
+</div>
+
+<div class="actions">
+  <button class="btn btn-primary" id="hunt">Run hunt</button>
+  <button class="btn" id="dash">Open dashboard</button>
+</div>
+
+<nav class="tabs">
+  <button class="t t-on" data-p="settings">Targeting</button>
+  <button class="t" data-p="profile">Profile</button>
+</nav>
+
+<section class="pane" id="p-settings">
+  <label>Minimum pay (CAD/yr)<input type="number" id="minSalary" step="5000" /></label>
+  <label class="row"><input type="checkbox" id="allowUnknownSalary" /> Include roles with undisclosed pay</label>
+  <label class="row"><input type="checkbox" id="canadaFirst" /> Prioritise Canada</label>
+  <label>Levels
+    <span class="row"><input type="checkbox" id="lv-intern" /> Internship</span>
+    <span class="row"><input type="checkbox" id="lv-newgrad" /> New grad</span>
+  </label>
+  <label>Apply mode
+    <select id="applyMode">
+      <option value="review">Review — fill, stop before submit</option>
+      <option value="auto">Auto — fill and submit</option>
+    </select>
+  </label>
+  <p class="hint" id="mode-hint"></p>
+  <button class="btn btn-primary btn-full" id="save-settings">Save</button>
+</section>
+
+<section class="pane" id="p-profile" hidden>
+  <div class="grid2">
+    <label>First name<input id="firstName" /></label>
+    <label>Last name<input id="lastName" /></label>
+  </div>
+  <label>Email<input id="email" type="email" /></label>
+  <label>Phone<input id="phone" /></label>
+  <label>City<input id="city" /></label>
+  <label>LinkedIn<input id="linkedin" /></label>
+  <label>GitHub<input id="github" /></label>
+  <h3>Screening answers</h3>
+  <p class="hint">These six decide automatic rejections. Auto-apply will not start until every one is set, and none of them is ever guessed.</p>
+  <label>Authorised to work in Canada
+    <select id="sc-workAuthCanada"><option value="">— required —</option><option>Yes</option><option>No</option></select>
+  </label>
+  <label>Authorised to work in the US
+    <select id="sc-workAuthUS"><option value="">— required —</option><option>Yes</option><option>No</option></select>
+  </label>
+  <label>Will you require visa sponsorship?
+    <select id="sc-sponsorship"><option value="">— required —</option><option>Yes</option><option>No</option></select>
+  </label>
+  <label>Citizenship / status
+    <select id="sc-citizenship"><option value="">— required —</option>
+      <option>Canadian citizen</option><option>Permanent resident</option>
+      <option>Work permit</option><option>Student visa</option><option>Other</option></select>
+  </label>
+  <label>Active security clearance?
+    <select id="sc-securityClearance"><option value="">— required —</option><option>Yes</option><option>No</option></select>
+  </label>
+  <label>Salary expectation (CAD/yr)
+    <input id="sc-salaryExpectation" placeholder="e.g. 95000" />
+  </label>
+
+  <h3>Optional</h3>
+  <label>Willing to relocate
+    <select id="sc-relocate"><option value="">—</option><option>Yes</option><option>No</option></select>
+  </label>
+
+  <div class="preflight" id="preflight"></div>
+
+  <button class="btn btn-primary btn-full" id="save-profile">Save profile</button>
+</section>
+
+<script src="popup.js"></script>
+</body>
+</html>

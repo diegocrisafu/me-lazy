@@ -1,0 +1,13 @@
+*.bak
+node_modules/
+.DS_Store
+
+# Runtime data — personal profile, application history, screenshots
+data/
+node_modules/
+# CV PDFs are personal documents
+cv/*.pdf
+
+# Real CV variants: full resume text and how claims are presented.
+# Copy cv-profiles.example.js -> cv-profiles.js and fill in locally.
+cv-profiles.js

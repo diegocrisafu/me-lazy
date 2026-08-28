@@ -1,0 +1,20 @@
+{
+  "name": "application-command-center",
+  "version": "4.0.0",
+  "private": true,
+  "description": "Autonomous internship and new-grad application pipeline: ATS discovery, CV routing, cover letters, and Playwright-driven submission.",
+  "type": "commonjs",
+  "scripts": {
+    "hunt": "node daemon/cli.js hunt",
+    "apply": "node daemon/cli.js apply",
+    "status": "node daemon/cli.js status",
+    "start": "node daemon/index.js",
+    "dashboard": "node daemon/server.js",
+    "login": "node daemon/cli.js login",
+    "test": "node --test tests/",
+    "verify": "node tools/verify-sources.js"
+  },
+  "dependencies": {
+    "playwright": "^1.62.1"
+  }
+}

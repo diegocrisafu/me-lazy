@@ -1,0 +1,76 @@
+{
+  "manifest_version": 3,
+  "name": "Application Command Center",
+  "version": "3.0.0",
+  "description": "Finds internship and new-grad developer roles paying $90k+ across Canadian banks, Canadian tech and US big tech, picks the right CV variant, and tracks every application through to the online assessment.",
+  "permissions": [
+    "storage",
+    "tabs",
+    "scripting",
+    "alarms",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://boards-api.greenhouse.io/*",
+    "https://boards.greenhouse.io/*",
+    "https://api.lever.co/*",
+    "https://jobs.lever.co/*",
+    "https://api.ashbyhq.com/*",
+    "https://jobs.ashbyhq.com/*",
+    "https://api.smartrecruiters.com/*",
+    "https://jobs.smartrecruiters.com/*",
+    "https://*.myworkdayjobs.com/*",
+    "https://jobs.rbc.com/*",
+    "https://www.amazon.jobs/*",
+    "https://gcsservices.careers.microsoft.com/*",
+    "https://jobs.careers.microsoft.com/*",
+    "https://www.linkedin.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://boards.greenhouse.io/*",
+        "https://job-boards.greenhouse.io/*",
+        "https://jobs.lever.co/*",
+        "https://jobs.ashbyhq.com/*",
+        "https://jobs.smartrecruiters.com/*",
+        "https://*.myworkdayjobs.com/*",
+        "https://jobs.rbc.com/*",
+        "https://www.amazon.jobs/*",
+        "https://jobs.careers.microsoft.com/*"
+      ],
+      "js": [
+        "answers.js",
+        "applier.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dashboard.html",
+        "cv-profiles.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

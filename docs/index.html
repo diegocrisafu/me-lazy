@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Job Command Center — Free Job Search Intelligence. No AI.</title>
+  <meta name="description" content="Free skill-match scoring, gap analysis, and resume intelligence for job seekers. Runs 100% in your browser. No AI, no servers, no tracking.">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+
+  <!-- ══════ NAV ══════ -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="#" class="nav-brand">
+        <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Job Command Center
+      </a>
+      <div class="nav-links">
+        <a href="#tool">Analyze</a>
+        <a href="#why">Why No AI</a>
+        <a href="#extension">Extension</a>
+        <a href="https://github.com/diegocrisafulli/me-lazy" target="_blank" rel="noopener">GitHub</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ══════ HERO ══════ -->
+  <header class="hero">
+    <div class="hero-inner">
+      <p class="hero-tag">100% free. 100% local. 0% AI.</p>
+      <h1 class="hero-h">Job search intelligence<br>without the artificial part.</h1>
+      <p class="hero-sub">Skill matching, gap analysis, and resume insights that run entirely in your browser. No servers. No accounts. No data leaves your machine.</p>
+      <p class="hero-sub hero-mission">Built by a student, for students — because finding an internship shouldn't cost money or burn water.</p>
+      <div class="hero-actions">
+        <a href="#tool" class="btn btn-primary">Try It Now</a>
+        <a href="#why" class="btn btn-ghost">Why No AI?</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat">
+          <span class="stat-num">232+</span>
+          <span class="stat-label">Skills tracked</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">14</span>
+          <span class="stat-label">Categories</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">0</span>
+          <span class="stat-label">API calls</span>
+        </div>
+        <div class="stat">
+          <span class="stat-num">0 mL</span>
+          <span class="stat-label">Water used</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ══════ HOW IT WORKS ══════ -->
+  <section class="section section-alt" id="how">
+    <div class="container">
+      <h2 class="section-h">How It Works</h2>
+      <p class="section-sub">Three steps. No sign-up. No waiting.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <h3>Paste your resume</h3>
+          <p>Drop in your resume text or upload a PDF. The engine detects your skills using a 230+ skill taxonomy with aliases (e.g., "k8s" = "Kubernetes").</p>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <h3>Paste the job description</h3>
+          <p>Copy any job posting. The engine reads it section-by-section, weighting required skills higher than nice-to-haves.</p>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <h3>Get your analysis</h3>
+          <p>Instant match score, category breakdown, skill gaps sorted by priority, and copy-paste resume phrases for each gap.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ TOOL ══════ -->
+  <section class="section" id="tool">
+    <div class="container">
+      <h2 class="section-h">Analyze a Job Match</h2>
+      <p class="section-sub">Paste your resume and a job description. Everything runs in your browser — nothing is sent anywhere.</p>
+
+      <div class="tool-grid">
+        <div class="tool-col">
+          <div class="tool-header">
+            <label class="tool-label" for="resume-input">Your Resume</label>
+            <label class="upload-btn" for="resume-file">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload PDF
+            </label>
+            <input type="file" id="resume-file" accept=".pdf,.txt" class="file-input">
+          </div>
+          <textarea id="resume-input" class="tool-textarea" rows="12" placeholder="Paste your resume text here or upload a PDF..."></textarea>
+          <div class="tool-meta" id="resume-meta"></div>
+        </div>
+        <div class="tool-col">
+          <div class="tool-header">
+            <label class="tool-label" for="jd-input">Job Description</label>
+            <label class="upload-btn" for="jd-file">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload PDF
+            </label>
+            <input type="file" id="jd-file" accept=".pdf,.txt" class="file-input">
+          </div>
+          <textarea id="jd-input" class="tool-textarea" rows="12" placeholder="Paste the full job posting here or upload a PDF..."></textarea>
+          <div class="tool-meta" id="jd-meta"></div>
+        </div>
+      </div>
+
+      <div class="tool-actions">
+        <button class="btn btn-primary btn-lg" id="analyze-btn" disabled>Analyze Match</button>
+        <p class="tool-hint">Both fields required. Minimum 50 characters each.</p>
+      </div>
+
+      <!-- Results -->
+      <div id="results" class="results hidden">
+
+        <!-- Quality Warning -->
+        <div class="quality-warning hidden" id="quality-warning"></div>
+
+        <!-- Score -->
+        <div class="result-score-card" id="score-card">
+          <div class="score-ring-box">
+            <svg class="score-ring" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="#e5e5e5" stroke-width="8"/>
+              <circle cx="60" cy="60" r="52" fill="none" stroke-width="8" stroke-linecap="round"
+                id="score-ring-progress" stroke-dasharray="326.7" stroke-dashoffset="326.7"
+                transform="rotate(-90 60 60)"/>
+            </svg>
+            <span class="score-num" id="score-value">0%</span>
+          </div>
+          <div class="score-info">
+            <span class="score-label">Match Score</span>
+            <span class="score-detail" id="score-detail"></span>
+          </div>
+        </div>
+
+        <!-- Category Breakdown -->
+        <div class="result-card">
+          <h3 class="result-card-h">Category Breakdown</h3>
+          <div id="breakdown-bars"></div>
+        </div>
+
+        <!-- Matched Skills -->
+        <div class="result-card">
+          <h3 class="result-card-h result-h-ok">Matched Skills (<span id="matched-count">0</span>)</h3>
+          <div id="matched-skills" class="skill-list"></div>
+        </div>
+
+        <!-- High Priority Gaps -->
+        <div class="result-card" id="high-gaps-card">
+          <h3 class="result-card-h result-h-bad">Missing — Required (<span id="high-gap-count">0</span>)</h3>
+          <p class="result-card-hint">Click a suggestion to copy it to your clipboard.</p>
+          <div id="high-gap-skills" class="skill-list"></div>
+        </div>
+
+        <!-- Low Priority Gaps -->
+        <div class="result-card" id="low-gaps-card">
+          <h3 class="result-card-h result-h-warn">Missing — Nice to Have (<span id="low-gap-count">0</span>)</h3>
+          <div id="low-gap-skills" class="skill-list"></div>
+        </div>
+
+        <button class="btn btn-ghost" id="reset-btn">Clear &amp; Start Over</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ WHY NO AI ══════ -->
+  <section class="section section-dark" id="why">
+    <div class="container">
+      <h2 class="section-h">Why No AI?</h2>
+      <p class="section-sub">This isn't anti-technology. It's pro-efficiency.</p>
+
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          </div>
+          <h3>Water</h3>
+          <p>A single ChatGPT conversation uses roughly <strong>500 mL of water</strong> for datacenter cooling. Training GPT-4 consumed an estimated <strong>700,000 liters</strong>. This tool uses zero — it runs on your machine.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </div>
+          <h3>Energy</h3>
+          <p>An AI-powered job matching query hits GPU clusters drawing <strong>hundreds of watts</strong>. Our matching engine runs in a browser tab using <strong>milliwatts</strong> of your existing CPU. Same result, a million times less power.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <h3>Privacy</h3>
+          <p>AI tools send your resume to remote servers. Your data gets logged, stored, and potentially used for training. Here, <strong>nothing leaves your browser</strong>. Not your resume, not the job description, not the results.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+          </div>
+          <h3>Cost</h3>
+          <p>AI job tools charge <strong>$20-50/month</strong>. Students hunting for internships shouldn't have to pay to job search. This is <strong>free, forever</strong> — no premium tier, no "credits," no upsell.</p>
+        </div>
+      </div>
+
+      <div class="why-bottom">
+        <p class="why-quote">"AI doesn't have to be everywhere. Sometimes a well-built algorithm is all you need."</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ EXTENSION ══════ -->
+  <section class="section" id="extension">
+    <div class="container">
+      <h2 class="section-h">Chrome Extension</h2>
+      <p class="section-sub">Take it directly to LinkedIn. Scan job postings, track applications, autofill Easy Apply forms.</p>
+
+      <div class="ext-grid">
+        <div class="ext-features">
+          <div class="ext-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>One-click job scan on any LinkedIn posting</span>
+          </div>
+          <div class="ext-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Match score, gap analysis, competition intelligence</span>
+          </div>
+          <div class="ext-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Kanban dashboard with drag-and-drop tracking</span>
+          </div>
+          <div class="ext-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Easy Apply autofill — saves your profile locally</span>
+          </div>
+          <div class="ext-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>Bilingual: English + French (Montreal market)</span>
+          </div>
+          <div class="ext-feat">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>CSV export for spreadsheet tracking</span>
+          </div>
+        </div>
+        <div class="ext-cta">
+          <div class="ext-card">
+            <h3>Install from Source</h3>
+            <ol class="ext-steps">
+              <li>Clone or download the repo from GitHub</li>
+              <li>Open <code>chrome://extensions</code></li>
+              <li>Enable <strong>Developer mode</strong></li>
+              <li>Click <strong>Load unpacked</strong> and select the folder</li>
+            </ol>
+            <a href="https://github.com/diegocrisafulli/me-lazy" target="_blank" rel="noopener" class="btn btn-primary">Get on GitHub</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════ FOOTER ══════ -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer-inner">
+        <div>
+          <strong>Job Command Center</strong>
+          <p>Free job search intelligence. No AI. No servers. No tracking.</p>
+        </div>
+        <div class="footer-links">
+          <a href="https://github.com/diegocrisafulli/me-lazy" target="_blank" rel="noopener">GitHub</a>
+          <a href="../privacy.html">Privacy Policy</a>
+        </div>
+      </div>
+      <p class="footer-copy">Made with algorithms, not artificial intelligence. Zero water consumed in the making of this tool.</p>
+    </div>
+  </footer>
+
+  <!-- Toast for clipboard -->
+  <div class="toast" id="toast">Copied!</div>
+
+  <script src="app.js"></script>
+</body>
+</html>
