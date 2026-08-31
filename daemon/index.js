@@ -21,7 +21,10 @@ const { applyTo } = require('./apply.js');
 const TICK_MS = 60000;
 let stopping = false;
 
-const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a);
+// Local time, to match the quiet-hours window and the machine's own clock.
+// UTC stamps here made a four-minute-old entry look two hours stale.
+const log = (...a) => console.log(
+  new Date().toLocaleTimeString('en-CA', { hour12: false }), ...a);
 
 async function tick() {
   const settings = store.getSettings();
