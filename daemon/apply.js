@@ -66,13 +66,20 @@ async function fillField(page, handle, answers, ctx) {
     value: el.value || '',
     disabled: el.disabled || el.readOnly,
     visible: !!(el.offsetParent || el.getClientRects().length),
-    maxLength: el.maxLength
+    maxLength: el.maxLength,
+    isRequiredProxy: /requiredInput/i.test(el.className || '')
   }));
 
   if (info.disabled || !info.visible) return null;
   if (['hidden', 'submit', 'button', 'image', 'reset'].includes(info.type)) return null;
   if (info.type === 'file') return null;            // handled separately
   if (info.value && info.value.trim()) return null; // never overwrite
+
+  // react-select renders TWO inputs per dropdown: the real combobox, and a
+  // hidden proxy carrying `required` purely so HTML5 validation fires. The
+  // proxy can never be filled, and treating it as the combobox means the
+  // real one is driven by a click that lands on the wrong element.
+  if (info.isRequiredProxy) return null;
 
   let label = await labelFor(page, handle);
 
@@ -130,8 +137,17 @@ async function fillField(page, handle, answers, ctx) {
       return on ? { field: 'consent', label, value: 'checked', kind: 'consent' } : null;
     }
     if (info.tag === 'select' || await isCombobox(handle)) {
-      const v = await fillCombobox(page, handle, 'Yes');
-      return v ? { field: 'consent', label, value: v, kind: 'consent' } : null;
+      // Consent menus phrase agreement however they like — "Yes",
+      // "I acknowledge", "I have read and agree". Try the common wordings,
+      // then fall back to the only affirmative option on offer.
+      for (const phrase of ['Yes', 'I acknowledge', 'I agree', 'I accept',
+                            'Acknowledge', 'Agree', 'Accept', 'I have read']) {
+        const v = await fillCombobox(page, handle, phrase);
+        if (v) return { field: 'consent', label, value: v, kind: 'consent' };
+      }
+      const only = await pickSoleAffirmative(page, handle);
+      if (only) return { field: 'consent', label, value: only, kind: 'consent' };
+      return null;
     }
     if (info.type === 'radio') {
       const ok = await setChoice(page, handle, label, 'Yes');
@@ -224,6 +240,23 @@ async function readOptions(page) {
   return out;
 }
 
+
+/** When a consent menu offers a single affirmative choice, take it. */
+async function pickSoleAffirmative(page, input) {
+  await input.click({ timeout: 3000 }).catch(() => {});
+  await page.waitForTimeout(400);
+  const options = await readOptions(page);
+  const usable = options.filter(o => !/^(select|choose|--|none)/i.test(o.text));
+  // Only safe when there is no ambiguity: one option, or a clear yes/no pair.
+  let pick = null;
+  if (usable.length === 1) pick = usable[0];
+  else pick = usable.find(o => /^(yes|i\s|accept|agree|acknowledg)/i.test(o.text));
+  if (!pick) { await page.keyboard.press('Escape').catch(() => {}); return ''; }
+  await pick.el.click({ timeout: 3000 }).catch(() => {});
+  await page.waitForTimeout(300);
+  return readComboValue(page, input);
+}
+
 async function fillCombobox(page, input, value) {
   const want = String(value);
 
@@ -282,10 +315,12 @@ async function readComboValue(page, input) {
 }
 
 async function isCombobox(handle) {
-  return handle.evaluate(el =>
-    el.getAttribute('role') === 'combobox' ||
-    /select__input/.test(el.className || '') ||
-    !!el.closest('[class*="select__container"]'));
+  return handle.evaluate(el => {
+    if (/requiredInput/i.test(el.className || '')) return false;   // the proxy
+    return el.getAttribute('role') === 'combobox' ||
+           /select__input/.test(el.className || '') ||
+           !!el.closest('[class*="select__container"]');
+  });
 }
 
 async function setChoice(page, handle, label, value) {
@@ -631,14 +666,20 @@ async function applyTo(ctxBrowser, record, opts = {}) {
         if (!req) return;
         if (el.type === 'radio' || el.type === 'checkbox') return;  // grouped above
         if (el.type === 'file') { if (!el.files?.length) out.push(el.id || el.name || 'file'); return; }
-        if (el.getAttribute('role') === 'combobox') {
-          const c = el.closest('[class*="select__container"]');
-          const v = c?.querySelector('[class*="singleValue"], [class*="single-value"]');
-          if (!v || !v.textContent.trim()) {
-            const lab = c?.querySelector('label');
-            out.push((lab?.textContent || el.id || 'dropdown').replace(/\s+/g, ' ').trim());
+        // A dropdown is judged by what react-select rendered, never by the
+        // proxy input, which stays empty even on a correctly chosen option.
+        const container = el.closest('[class*="select__container"]');
+        if (container) {
+          const proxy = /requiredInput/i.test(el.className || '');
+          if (proxy) return;                       // the combobox speaks for it
+          if (el.getAttribute('role') === 'combobox') {
+            const v = container.querySelector('[class*="singleValue"], [class*="single-value"], [class*="multi-value__label"]');
+            if (!v || !v.textContent.trim()) {
+              const lab = container.querySelector('label');
+              out.push((lab?.textContent || el.id || 'dropdown').replace(/\s+/g, ' ').trim());
+            }
+            return;
           }
-          return;
         }
         if (!el.value || !el.value.trim()) {
           const lab = document.querySelector(`label[for="${el.id}"]`);

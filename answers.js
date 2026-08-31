@@ -69,7 +69,7 @@ const ANSWER_RULES = [
   { id: 'portfolio', re: /portfolio|personal\s*(?:site|website)|website/i, from: 'website' },
 
   /* ── Education ── */
-  { id: 'school',       re: /school|university|universit[ée]|college|institution|[ée]tablissement/i,
+  { id: 'school',       re: /school|university|universit[ée]|college|institution|[ée]tablissement|currently\s*attend/i,
     not: /when|date|month|year|complete|graduat|scale|gpa|grade/i, from: 'school' },
   { id: 'degree',       re: /degree|dipl[ôo]me|qualification/i, from: 'degree' },
   { id: 'fieldOfStudy', re: /field\s*of\s*study|major|discipline|domaine|programme?\s*of\s*study/i, from: 'fieldOfStudy' },
@@ -81,8 +81,10 @@ const ANSWER_RULES = [
   { id: 'eduEndYear',    re: /end\s*date\s*year|graduation\s*year|completion\s*year/i,   from: 'gradYear' },
   { id: 'eduStartMonth', re: /start\s*date\s*month/i, from: 'eduStartMonth' },
   { id: 'eduStartYear',  re: /start\s*date\s*year/i,  from: 'eduStartYear' },
+  { id: 'gradYearOnly',  re: /(?:when\s*(?:did|do)\s*you\s*(?:expect\s*to\s*)?graduat|graduation\s*year|year\s*of\s*graduation|expect\s*to\s*graduate)/i,
+    not: /high\s*school/i, from: 'gradYearOptions' },
   { id: 'gradDate',      re: /graduation|grad\s*date|expected\s*(?:date|completion|graduation)|date\s*de\s*fin|when\s*(?:will\s*)?you\s*(?:will\s*)?complete/i,
-    not: /month|year/i, from: 'gradDate' },
+    not: /month|year|high\s*school/i, from: 'gradDate' },
   { id: 'currentYear',  re: /year\s*of\s*study|current\s*year|ann[ée]e\s*d.?[ée]tude/i, from: 'yearOfStudy' },
 
   /* ── Logistics ── */
@@ -112,6 +114,10 @@ const ANSWER_RULES = [
     from: 'educationLevel' },
   { id: 'cityPreference', re: /from\s*the\s*cities|other\s*(?:cities|locations|offices)|additional\s*locations|open\s*to\s*(?:other\s*)?locations|any\s*others?\s*you\s*would\s*consider/i,
     from: 'preferredLocation' },
+  { id: 'testScoreType', re: /standardi[sz]ed\s*test|test\s*score\s*type|sat\s*\/?\s*act|which\s*test\s*did\s*you/i,
+    from: 'testScoreType' },
+  { id: 'testScore', re: /\b(?:sat|act|gre|gmat)\b\s*score|test\s*score(?!\s*type)/i,
+    from: 'testScore' },
   { id: 'gradingScale', re: /grading\s*scale|gpa\s*scale|out\s*of\s*(?:what|how\s*much)|scale\s*used/i,
     from: 'gradingScale' },
   { id: 'furtherEducation', re: /further\s*education|pursu\w*\s*(?:a\s*)?(?:master|graduate|phd|additional)|continue\s*(?:your\s*)?education|postgraduate/i,
@@ -201,6 +207,11 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     gradYear: (cvFacts.gradDate || '2026-09').split('-')[0],
     eduStartMonth: 'September',
     eduStartYear: '2022',
+    gradYearOptions: (() => {
+      const y = (cvFacts.gradDate || '2026-09').split('-')[0];
+      const m = MONTHS[parseInt((cvFacts.gradDate || '2026-09').split('-')[1], 10) - 1];
+      return [y, m + ' ' + y, y + '-' + (cvFacts.gradDate || '2026-09').split('-')[1]];
+    })(),
     yearOfStudy: profile.yearOfStudy || 'Final year',
 
     // Eligibility — no defaults invented; these must be set explicitly.
@@ -227,14 +238,23 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     // Menus offer wildly different vocabularies here. A list is tried in
     // order, so one of them matches whatever this form happens to call it.
     gradingScale: profile.gradingScale || '4.0',
+    // Canadian universities do not require SAT/ACT, so there is usually no
+    // score to give. Offer the ways forms phrase "none".
+    testScoreType: profile.testScoreType ||
+      ['None', 'N/A', 'Not applicable', 'Prefer not to answer', 'Other', 'Did not take'],
+    testScore: profile.testScore || ['N/A', 'None', 'Prefer not to answer'],
     // Bachelor's start year minus four is the usual high-school finish.
-    highSchoolGradYear: profile.highSchoolGradYear || '2020',
+    // Year menus want a bare year; prose fields want the full date. Offer
+    // both so whichever the form uses, one of them matches.
+    highSchoolGradYear: profile.highSchoolGradYear || ['2020', '2021', '2019'],
     educationLevel: profile.educationLevel ||
       ["Bachelor's Degree", 'Bachelors', "Bachelor's", 'Undergraduate', 'BS', 'University'],
     furtherEducation: profile.furtherEducation || 'No',
     outstandingOffers: profile.outstandingOffers || 'No',
     preferredDepartment: profile.preferredDepartment ||
-      ['Software Engineering', 'Engineering', 'Technology', 'Core Development', 'Any'],
+      ['Software Engineering', 'Software Development', 'Engineering', 'Technology',
+       'Core Development', 'Software', 'Development', 'Quantitative Development',
+       'Quantitative Research', 'Any', 'No preference'],
     militaryService: profile.militaryService || 'No',
     currentEmployer: profile.currentEmployer || 'McKesson',
     programmingLanguages: profile.programmingLanguages || 'Python, C++, Java, JavaScript',
