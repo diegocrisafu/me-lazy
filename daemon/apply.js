@@ -447,29 +447,83 @@ async function attachFiles(page, record, ctx) {
 
 /* ─────────── per-ATS entry points ─────────── */
 
-/** Get to the page that actually contains the form. */
+/* ─────────── getting to the form ───────────
+   Two things routinely stand between a job URL and a fillable form, and
+   both look identical to a filler that only counts DOM nodes: a cookie
+   banner covering the page, and a form that stays collapsed until an
+   "Apply" button is pressed. Several boards ship the form in the DOM
+   while hiding it, so the presence of a file input proves nothing —
+   only visible fields do. */
+
+async function dismissOverlays(page) {
+  const accepts = [
+    'button:has-text("Accept all")', 'button:has-text("Accept All")',
+    'button:has-text("Accept cookies")', 'button:has-text("Accept")',
+    'button:has-text("I agree")', 'button:has-text("Got it")',
+    'button:has-text("Allow all")', 'button:has-text("Tout accepter")',
+    '#onetrust-accept-btn-handler', '[aria-label*="accept" i]'
+  ];
+  for (const sel of accepts) {
+    const el = await page.$(sel).catch(() => null);
+    if (!el) continue;
+    const visible = await el.isVisible().catch(() => false);
+    if (!visible) continue;
+    await el.click({ timeout: 2500 }).catch(() => {});
+    await page.waitForTimeout(500);
+    return true;
+  }
+  return false;
+}
+
+/** Visible, fillable controls — the only count that means anything. */
+async function visibleFieldCount(page) {
+  return page.evaluate(() => {
+    let n = 0;
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+      if (['hidden', 'submit', 'button', 'image', 'reset'].includes(el.type)) return;
+      if (el.disabled) return;
+      if (!(el.offsetParent || el.getClientRects().length)) return;
+      n++;
+    });
+    return n;
+  }).catch(() => 0);
+}
+
 async function openForm(page, record) {
   const url = record.applyUrl || record.url;
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(1500);
 
-  // Lever and some Greenhouse boards put the form behind a button.
+  await dismissOverlays(page);
+
   const triggers = [
-    'a:has-text("Apply for this job")', 'a:has-text("Apply now")',
-    'button:has-text("Apply for this job")', 'button:has-text("Apply now")',
-    'a:has-text("Apply")', 'button:has-text("Apply")'
+    'a:has-text("Apply for this job")', 'button:has-text("Apply for this job")',
+    'a:has-text("Apply now")', 'button:has-text("Apply now")',
+    'a:has-text("Apply")', 'button:has-text("Apply")',
+    '[data-testid*="apply" i]', 'a[href*="apply" i]'
   ];
-  const hasForm = await page.$('input[type="file"], input[name*="email"], input[type="email"]');
-  if (!hasForm) {
+
+  // Try up to twice: an Apply click sometimes navigates to a page that
+  // itself needs the banner dismissed before the form renders.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (await visibleFieldCount(page) >= 4) break;
+
+    let clicked = false;
     for (const sel of triggers) {
-      const el = await page.$(sel);
-      if (el) {
-        await el.click().catch(() => {});
-        await page.waitForTimeout(2500);
-        break;
-      }
+      const el = await page.$(sel).catch(() => null);
+      if (!el) continue;
+      if (!await el.isVisible().catch(() => false)) continue;
+      await el.click({ timeout: 3000 }).catch(() => {});
+      clicked = true;
+      break;
     }
+    if (!clicked) break;
+
+    await page.waitForLoadState('domcontentloaded', { timeout: 8000 }).catch(() => {});
+    await page.waitForTimeout(2000);
+    await dismissOverlays(page);
   }
+
   return page.url();
 }
 

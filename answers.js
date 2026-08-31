@@ -104,6 +104,14 @@ const ANSWER_RULES = [
      terminal, so a wrong guess costs nothing — but leaving them blank stops
      the submit, because forms mark them required. */
 
+  { id: 'highSchoolGrad', re: /high\s*school[^?]{0,30}(?:graduat|complet|finish)|when\s*did\s*you\s*graduate\s*from\s*high/i,
+    from: 'highSchoolGradYear' },
+  { id: 'applyingLocation', re: /which\s*location\s*(?:are\s*you\s*)?applying|location\s*(?:are\s*you\s*)?applying\s*(?:to|for)|applying\s*to\s*which/i,
+    from: 'preferredLocation' },
+  { id: 'educationLevel', re: /highest\s*(?:level\s*of\s*)?education|level\s*of\s*(?:study|education)|degree\s*level|education\s*level/i,
+    from: 'educationLevel' },
+  { id: 'cityPreference', re: /from\s*the\s*cities|other\s*(?:cities|locations|offices)|additional\s*locations|open\s*to\s*(?:other\s*)?locations|any\s*others?\s*you\s*would\s*consider/i,
+    from: 'preferredLocation' },
   { id: 'gradingScale', re: /grading\s*scale|gpa\s*scale|out\s*of\s*(?:what|how\s*much)|scale\s*used/i,
     from: 'gradingScale' },
   { id: 'furtherEducation', re: /further\s*education|pursu\w*\s*(?:a\s*)?(?:master|graduate|phd|additional)|continue\s*(?:your\s*)?education|postgraduate/i,
@@ -219,6 +227,10 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     // Menus offer wildly different vocabularies here. A list is tried in
     // order, so one of them matches whatever this form happens to call it.
     gradingScale: profile.gradingScale || '4.0',
+    // Bachelor's start year minus four is the usual high-school finish.
+    highSchoolGradYear: profile.highSchoolGradYear || '2020',
+    educationLevel: profile.educationLevel ||
+      ["Bachelor's Degree", 'Bachelors', "Bachelor's", 'Undergraduate', 'BS', 'University'],
     furtherEducation: profile.furtherEducation || 'No',
     outstandingOffers: profile.outstandingOffers || 'No',
     preferredDepartment: profile.preferredDepartment ||
