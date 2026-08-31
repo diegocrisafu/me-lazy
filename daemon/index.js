@@ -124,6 +124,12 @@ async function applyOne(id, settings = store.getSettings()) {
   if (result.submitted) {
     tracker.applyStatus(rec, 'applied', { mode: 'auto' });
     log(`  APPLIED  ${rec.company} — ${rec.title.slice(0, 44)}  [${rec.cvShort}]`);
+  } else if (dryRun && /no form found/.test(result.blocked || '')) {
+    // Not a rehearsal problem: this posting has no fillable form and never
+    // will. Scout it now rather than spending an attempt on it every pass.
+    tracker.applyStatus(rec, 'scouted', { reason: result.blocked });
+    rec.scoutReason = result.blocked;
+    log(`  scouted  ${rec.company} — ${rec.title.slice(0, 40)}  (no form; apply by hand)`);
   } else if (dryRun) {
     // Stays queued — a dry run is a rehearsal, not an attempt — but it must
     // not be picked again next tick, or the loop rehearses one role forever.
