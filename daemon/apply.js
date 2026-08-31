@@ -568,7 +568,11 @@ async function applyTo(ctxBrowser, record, opts = {}) {
   }
 
   const page = await ctxBrowser.newPage();
+  // Element actions get a short leash so one covered control cannot stall
+  // the run. Navigation needs far longer — setDefaultTimeout caps both, and
+  // an 8s cap silently failed every page slower than that.
   page.setDefaultTimeout(8000);
+  page.setDefaultNavigationTimeout(45000);
   const shots = [];
   const filled = [];
   const deadline = Date.now() + (opts.budgetMs || 420000);
