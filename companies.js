@@ -269,6 +269,208 @@ const COMPANIES = [
     verified:true, jobs:322,
     oa:{ likelihood:0.7, platform:'HackerRank' } },
 
+  /* ═══════════ VERIFIED-FILLABLE BOARDS ═══════════
+     Discovered by probing 217 candidate ATS tokens, then screening each for
+     whether its apply URL stays on the ATS. Boards that redirect to the
+     employer's own careers site are excluded: their postings can be read but
+     never submitted, and they otherwise consume an attempt each. */
+
+  { id:'harvey', name:"Harvey", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'harvey', verified:true, jobs:341,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'cloudflare', name:"Cloudflare", tier:2, country:'US', sector:'bigtech',
+    ats:'greenhouse', token:'cloudflare', verified:true, jobs:319,
+    oa:{ likelihood:0.6, platform:'unknown' } },
+
+  { id:'elevenlabs', name:"ElevenLabs", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'elevenlabs', verified:true, jobs:251,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'gitlab', name:"GitLab", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'gitlab', verified:true, jobs:221,
+    oa:{ likelihood:0.5, platform:'unknown' } },
+
+  { id:'verkada', name:"Verkada", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'verkada', verified:true, jobs:284,
+    oa:{ likelihood:0.6, platform:'unknown' } },
+
+  { id:'sierra', name:"Sierra", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'sierra', verified:true, jobs:209,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'flexport', name:"Flexport", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'flexport', verified:true, jobs:172,
+    oa:{ likelihood:0.5, platform:'unknown' } },
+
+  { id:'decagon', name:"Decagon", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'decagon', verified:true, jobs:139,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'grafanalabs', name:"Grafana Labs", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'grafanalabs', verified:true, jobs:134,
+    oa:{ likelihood:0.5, platform:'unknown' } },
+
+  { id:'twilio', name:"Twilio", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'twilio', verified:true, jobs:134,
+    oa:{ likelihood:0.5, platform:'unknown' } },
+
+  { id:'cursor', name:"Cursor", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'cursor', verified:true, jobs:119,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'mercor', name:"Mercor", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'mercor', verified:true, jobs:95,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'justworks', name:"Justworks", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'justworks', verified:true, jobs:102,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'lambda', name:"Lambda", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'lambda', verified:true, jobs:81,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'baseten', name:"Baseten", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'baseten', verified:true, jobs:83,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'vercel', name:"Vercel", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'vercel', verified:true, jobs:89,
+    oa:{ likelihood:0.5, platform:'unknown' } },
+
+  { id:'gusto', name:"Gusto", tier:2, country:'US', sector:'fintech',
+    ats:'greenhouse', token:'gusto', verified:true, jobs:94,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'mixpanel', name:"Mixpanel", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'mixpanel', verified:true, jobs:83,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'suno', name:"Suno", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'suno', verified:true, jobs:63,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'postman', name:"Postman", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'postman', verified:true, jobs:65,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'carta', name:"Carta", tier:2, country:'US', sector:'fintech',
+    ats:'greenhouse', token:'carta', verified:true, jobs:60,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'matchgroup', name:"Matchgroup", tier:2, country:'US', sector:'tech',
+    ats:'lever', token:'matchgroup', verified:true, jobs:68,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'monzo', name:"Monzo", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'monzo', verified:true, jobs:64,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'writer', name:"Writer", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'writer', verified:true, jobs:51,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'synthesia', name:"Synthesia", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'synthesia', verified:true, jobs:60,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'checkr', name:"Checkr", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'checkr', verified:true, jobs:45,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'mercury', name:"Mercury", tier:2, country:'US', sector:'fintech',
+    ats:'greenhouse', token:'mercury', verified:true, jobs:54,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'ro', name:"Ro", tier:2, country:'US', sector:'tech',
+    ats:'lever', token:'ro', verified:true, jobs:48,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'modal', name:"Modal", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'modal', verified:true, jobs:31,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'vapi', name:"Vapi", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'vapi', verified:true, jobs:34,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'abridge', name:"Abridge", tier:2, country:'US', sector:'ai',
+    ats:'ashby', org:'abridge', verified:true, jobs:41,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'linear', name:"Linear", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'linear', verified:true, jobs:28,
+    oa:{ likelihood:0.5, platform:'unknown' } },
+
+  { id:'radiant', name:"Radiant", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'radiant', verified:true, jobs:31,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'amplitude', name:"Amplitude", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'amplitude', verified:true, jobs:35,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'gemini', name:"Gemini", tier:2, country:'US', sector:'fintech',
+    ats:'greenhouse', token:'gemini', verified:true, jobs:40,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'starburst', name:"Starburst", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'starburst', verified:true, jobs:23,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'wise', name:"Wise", tier:2, country:'US', sector:'fintech',
+    ats:'greenhouse', token:'wise', verified:true, jobs:21,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'coursera', name:"Coursera", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'coursera', verified:true, jobs:21,
+    oa:{ likelihood:0.5, platform:'unknown' } },
+
+  { id:'ginkgobioworks', name:"Ginkgobioworks", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'ginkgobioworks', verified:true, jobs:19,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'browserbase', name:"Browserbase", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'browserbase', verified:true, jobs:8,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'databento', name:"Databento", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'databento', verified:true, jobs:14,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'recursionpharmaceuticals', name:"Recursionpharmaceuticals", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'recursionpharmaceuticals', verified:true, jobs:14,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'airtable', name:"Airtable", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'airtable', verified:true, jobs:16,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'lithic', name:"Lithic", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'lithic', verified:true, jobs:5,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'openevidence', name:"Openevidence", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'openevidence', verified:true, jobs:8,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'impulse', name:"Impulse", tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'impulse', verified:true, jobs:3,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'archer', name:"Archer", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'archer', verified:true, jobs:1,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'netlify', name:"Netlify", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'netlify', verified:true, jobs:2,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
+  { id:'highnote', name:"Highnote", tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'highnote', verified:true, jobs:4,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
   /* ═══════════ TIER 3 — CUSTOM ADAPTERS ═══════════ */
 
 

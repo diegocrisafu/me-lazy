@@ -216,6 +216,32 @@ function requiresReturnToSchool(description = '') {
   return RETURN_TO_SCHOOL.test(String(description));
 }
 
+/* ─────────── SENIORITY WITHOUT A NUMBER ───────────
+   Plenty of postings never state a years requirement yet plainly expect an
+   experienced hire: "founding engineer", "deep expertise", "you have shipped
+   and owned", "mentor the team". Admitting ambiguous-level roles is useful
+   for volume, but not if it sweeps these in — they are not winnable and each
+   one costs an application slot. */
+
+const SENIOR_LANGUAGE = new RegExp([
+  '\\bfounding\\s+(?:engineer|member|team)',
+  '|\\bdeep\\s+(?:expertise|experience|knowledge)\\b',
+  '|\\bproven\\s+track\\s+record\\b',
+  '|\\bextensive\\s+experience\\b',
+  '|\\bmentor(?:ing|ship)?\\s+(?:junior|other|the\\s+team|engineers)',
+  '|\\blead\\s+(?:a\\s+)?(?:team|group|squad)\\b',
+  '|\\bown\\s+the\\s+(?:roadmap|architecture|vision|strategy)\\b',
+  '|\\bset\\s+(?:the\\s+)?technical\\s+direction\\b',
+  '|\\bdrive\\s+(?:the\\s+)?(?:architecture|technical\\s+strategy)\\b',
+  '|\\bseasoned\\b|\\bexpert[\\s-]level\\b',
+  '|\\bindustry\\s+veteran\\b',
+  '|\\byou\\s+have\\s+(?:built|shipped|scaled)\\s+[^.]{0,40}\\bproduction\\b'
+].join(''), 'i');
+
+function readsSenior(description = '') {
+  return SENIOR_LANGUAGE.test(String(description).slice(0, 4000));
+}
+
 /* ─────────── ADVANCED-DEGREE REQUIREMENT ───────────
    Quant desks post PhD-only research seats alongside
    bachelor-level ones, at the same pay. Applying to
@@ -272,7 +298,9 @@ const DEFAULT_RULES = {
   // Which role families to pursue. Widening scope is a config change.
   families: ['swe', 'quant-dev', 'quant-research', 'data', 'analyst'],
   // Quant desks post PhD-only seats next to bachelor-level ones.
-  excludeAdvancedDegree: true
+  excludeAdvancedDegree: true,
+  // Applies only to postings whose level could not be determined.
+  rejectSeniorTone: true
 };
 
 /**
@@ -287,6 +315,7 @@ function evaluate(job, salary, rules = {}) {
   const years = requiredYears(job.description);
   const returnToSchool = requiresReturnToSchool(job.description);
   const advancedDegree = requiresAdvancedDegree(job.title, job.description);
+  const seniorTone = readsSenior(job.description);
   let levelInferred = false;
 
   const family = classifyFamily(job.title);
@@ -303,6 +332,10 @@ function evaluate(job, salary, rules = {}) {
       ENTRY_EVIDENCE.test(job.description)) {
     level = 'newgrad';
     levelInferred = true;
+  }
+
+  if (level === 'unknown' && seniorTone && r.rejectSeniorTone !== false) {
+    reasons.push('reads-as-experienced-hire');
   }
 
   if (level === 'senior') reasons.push('too-senior');
@@ -379,7 +412,7 @@ function oaPriority(job, evaluation, matchScore = 0, opts = {}) {
 const __targeting = {
     classifyLevel, isDevRole, classifyFamily, ROLE_FAMILIES, requiredYears, classifyLocation,
     evaluate, oaPriority, freshnessFactor, DEFAULT_RULES, ENTRY_EVIDENCE,
-  requiresReturnToSchool, RETURN_TO_SCHOOL, requiresAdvancedDegree
+  requiresReturnToSchool, RETURN_TO_SCHOOL, requiresAdvancedDegree, readsSenior
   };
 
 // Node (tests) and browser / service-worker (importScripts or <script>)
