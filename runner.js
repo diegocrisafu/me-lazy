@@ -138,6 +138,13 @@ function applyability(job, answers = {}, opts = {}) {
 
   if (!support.auto) blockers.push(support.reason);
 
+  // Measured per employer: some boards redirect to the company's own careers
+  // site, where there is no form to fill. Knowing that up front saves an
+  // attempt on every posting they list.
+  if (job.autoApply === false) {
+    blockers.push('employer redirects its board to its own site — no form to fill');
+  }
+
   if (opts.requireCriticalAnswers !== false) {
     const missing = opts.missingCritical || [];
     if (missing.length) {

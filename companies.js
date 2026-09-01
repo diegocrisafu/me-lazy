@@ -106,10 +106,16 @@ const COMPANIES = [
 
   { id:'jane-street', name:'Jane Street', tier:2, country:'US', sector:'quant',
     ats:'greenhouse', token:'janestreet', verified:true, jobs:234,
+    // Redirects its board URL to www.janestreet.com — no fillable form there,
+    // so postings go to the scouting report instead of the apply queue.
+    autoApply: false,
     oa:{ likelihood:0.8, platform:'Custom', note:'Also hires into NYC from Canadian schools' } },
 
   { id:'optiver', name:'Optiver', tier:2, country:'US', sector:'quant',
     ats:'greenhouse', token:'optiverus', verified:true, jobs:172,
+    // Redirects its board URL to www.optiver.com — no fillable form there,
+    // so postings go to the scouting report instead of the apply queue.
+    autoApply: false,
     oa:{ likelihood:0.9, platform:'HackerRank', note:'Timed test sent almost immediately' } },
 
   { id:'imc', name:'IMC Trading', tier:2, country:'US', sector:'quant',
@@ -122,14 +128,23 @@ const COMPANIES = [
 
   { id:'jump', name:'Jump Trading', tier:2, country:'US', sector:'quant',
     ats:'greenhouse', token:'jumptrading', verified:true, jobs:110,
+    // Redirects its board URL to www.jumptrading.com — no fillable form there,
+    // so postings go to the scouting report instead of the apply queue.
+    autoApply: false,
     oa:{ likelihood:0.85, platform:'HackerRank' } },
 
   { id:'squarepoint', name:'Squarepoint Capital', tier:2, country:'US', sector:'quant',
     ats:'greenhouse', token:'squarepointcapital', verified:true, jobs:91,
+    // Redirects its board URL to www.squarepoint-capital.com — no fillable form there,
+    // so postings go to the scouting report instead of the apply queue.
+    autoApply: false,
     oa:{ likelihood:0.85, platform:'HackerRank' } },
 
   { id:'akuna', name:'Akuna Capital', tier:2, country:'US', sector:'quant',
     ats:'greenhouse', token:'akunacapital', verified:true, jobs:34,
+    // Redirects its board URL to akunacapital.com — no fillable form there,
+    // so postings go to the scouting report instead of the apply queue.
+    autoApply: false,
     oa:{ likelihood:0.9, platform:'HackerRank' } },
 
   { id:'belvedere', name:'Belvedere Trading', tier:2, country:'US', sector:'quant',
@@ -148,6 +163,9 @@ const COMPANIES = [
 
   { id:'stripe', name:'Stripe', tier:2, country:'US', sector:'fintech',
     ats:'greenhouse', token:'stripe', verified:true, jobs:581,
+    // Redirects its board URL to stripe.com — no fillable form there,
+    // so postings go to the scouting report instead of the apply queue.
+    autoApply: false,
     oa:{ likelihood:0.7, platform:'HackerRank' } },
 
   { id:'anthropic', name:'Anthropic', tier:2, country:'US', sector:'ai',
@@ -282,6 +300,9 @@ const COMPANIES = [
 
   { id:'oldmission', name:'Old Mission Capital', tier:2, country:'US', sector:'quant',
     ats:'greenhouse', token:'oldmissioncapital', verified:true, jobs:36,
+    // Redirects its board URL to www.oldmissioncapital.com — no fillable form there,
+    // so postings go to the scouting report instead of the apply queue.
+    autoApply: false,
     oa:{ likelihood:0.85, platform:'HackerRank' } },
 
   { id:'fiverings', name:'Five Rings', tier:2, country:'US', sector:'quant',
@@ -374,6 +395,12 @@ function prioritized(companies = COMPANIES, opts = {}) {
 
 function byId(id) { return COMPANIES.find(c => c.id === id) || null; }
 
+/** Employers whose board URL redirects away from a fillable form. */
+function canAutoApply(companyId) {
+  const c = byId(companyId);
+  return c ? c.autoApply !== false : true;
+}
+
 function stats() {
   const out = { total: COMPANIES.length, verified: 0, unverified: 0, reachableJobs: 0,
                 byCountry: {}, bySector: {}, byAts: {} };
@@ -387,7 +414,7 @@ function stats() {
   return out;
 }
 
-const __companies = { COMPANIES, prioritized, byId, stats };
+const __companies = { COMPANIES, prioritized, byId, stats, canAutoApply };
 
 // Node (tests) and browser / service-worker (importScripts or <script>)
 if (typeof module !== 'undefined' && module.exports) module.exports = __companies;

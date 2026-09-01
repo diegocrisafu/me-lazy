@@ -90,6 +90,7 @@ function normalize(company, raw) {
     sector: company.sector,
     tier: company.tier,
     ats: company.ats,
+    autoApply: company.autoApply !== false,
     oaLikelihood: company.oa?.likelihood ?? 0,
     oaPlatform: company.oa?.platform || null,
 

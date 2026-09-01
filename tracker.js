@@ -56,6 +56,7 @@ function makeRecord(job, extra = {}) {
     url: job.url,
     applyUrl: job.applyUrl,
     ats: job.ats,
+    autoApply: job.autoApply !== false,
 
     family: job.family || null,
     level: job.level,
