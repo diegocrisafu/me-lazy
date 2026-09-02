@@ -1,291 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Job Command Center — Free Job Search Intelligence. No AI.</title>
-  <meta name="description" content="Free skill-match scoring, gap analysis, and resume intelligence for job seekers. Runs 100% in your browser. No AI, no servers, no tracking.">
-  <link rel="stylesheet" href="style.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Diego Crisafulli — Software Developer</title>
+<meta name="description" content="Backend and full-stack developer in Montreal. Four internships at McKesson, CAE and Presagis building AI agents, data pipelines and simulation systems in Python, C++ and .NET." />
+<meta property="og:title" content="Diego Crisafulli — Software Developer" />
+<meta property="og:description" content="Backend and full-stack developer in Montreal. AI agents, data pipelines and simulation systems." />
+<meta property="og:type" content="profile" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- ══════ NAV ══════ -->
-  <nav class="nav">
-    <div class="nav-inner">
-      <a href="#" class="nav-brand">
-        <svg class="nav-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        Job Command Center
-      </a>
-      <div class="nav-links">
-        <a href="#tool">Analyze</a>
-        <a href="#why">Why No AI</a>
-        <a href="#extension">Extension</a>
-        <a href="https://github.com/diegocrisafulli/me-lazy" target="_blank" rel="noopener">GitHub</a>
-      </div>
+<a href="#summary" class="sr-only">Skip to content</a>
+
+<nav class="nav" id="nav">
+  <div class="nav-in">
+    <a href="#top" class="nav-name">Diego Crisafulli</a>
+    <div class="nav-links">
+      <a href="#summary" class="nav-link" data-nav="summary">Summary</a>
+      <a href="#work"    class="nav-link" data-nav="work">Work</a>
+      <a href="#impact"  class="nav-link" data-nav="impact">Impact</a>
+      <a href="#projects" class="nav-link" data-nav="projects">Projects</a>
     </div>
-  </nav>
+    <a href="#contact" class="nav-cta">Get in touch</a>
+  </div>
+</nav>
 
-  <!-- ══════ HERO ══════ -->
-  <header class="hero">
-    <div class="hero-inner">
-      <p class="hero-tag">100% free. 100% local. 0% AI.</p>
-      <h1 class="hero-h">Job search intelligence<br>without the artificial part.</h1>
-      <p class="hero-sub">Skill matching, gap analysis, and resume insights that run entirely in your browser. No servers. No accounts. No data leaves your machine.</p>
-      <p class="hero-sub hero-mission">Built by a student, for students — because finding an internship shouldn't cost money or burn water.</p>
-      <div class="hero-actions">
-        <a href="#tool" class="btn btn-primary">Try It Now</a>
-        <a href="#why" class="btn btn-ghost">Why No AI?</a>
-      </div>
-      <div class="hero-stats">
-        <div class="stat">
-          <span class="stat-num">232+</span>
-          <span class="stat-label">Skills tracked</span>
-        </div>
-        <div class="stat">
-          <span class="stat-num">14</span>
-          <span class="stat-label">Categories</span>
-        </div>
-        <div class="stat">
-          <span class="stat-num">0</span>
-          <span class="stat-label">API calls</span>
-        </div>
-        <div class="stat">
-          <span class="stat-num">0 mL</span>
-          <span class="stat-label">Water used</span>
-        </div>
-      </div>
+<!-- ══════════ HERO ══════════ -->
+<header class="hero" id="top">
+  <!-- A rotating point field rather than a stock photo: five years of the
+       work below is LiDAR, point clouds and digital twins. -->
+  <canvas id="field" aria-hidden="true"></canvas>
+  <div class="wrap hero-in">
+    <p class="eyebrow">Montreal, Canada</p>
+    <h1 class="hero-name">Diego<br />Crisafulli</h1>
+    <p class="hero-role">
+      Backend and full-stack developer. Four internships and a current contract at
+      <strong>McKesson</strong>, <strong>CAE</strong> and <strong>Presagis</strong> — building AI agents,
+      data pipelines and simulation systems that went into production.
+    </p>
+    <div class="hero-meta">
+      <span><i></i>Python · C++ · .NET · Swift</span>
+      <span><i></i>BSc Computer Science, Concordia</span>
+      <span><i></i>Available now</span>
     </div>
-  </header>
+  </div>
+  <a href="#summary" class="hero-scroll">Scroll</a>
+</header>
 
-  <!-- ══════ HOW IT WORKS ══════ -->
-  <section class="section section-alt" id="how">
-    <div class="container">
-      <h2 class="section-h">How It Works</h2>
-      <p class="section-sub">Three steps. No sign-up. No waiting.</p>
-      <div class="steps">
-        <div class="step">
-          <div class="step-num">1</div>
-          <h3>Paste your resume</h3>
-          <p>Drop in your resume text or upload a PDF. The engine detects your skills using a 230+ skill taxonomy with aliases (e.g., "k8s" = "Kubernetes").</p>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <h3>Paste the job description</h3>
-          <p>Copy any job posting. The engine reads it section-by-section, weighting required skills higher than nice-to-haves.</p>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <h3>Get your analysis</h3>
-          <p>Instant match score, category breakdown, skill gaps sorted by priority, and copy-paste resume phrases for each gap.</p>
-        </div>
-      </div>
+<!-- ══════════ SUMMARY ══════════ -->
+<section class="section" id="summary">
+  <div class="wrap">
+    <div class="section-head rise">
+      <p class="eyebrow">01 — Summary</p>
+      <h2 class="section-title">Production software,<br />not coursework.</h2>
     </div>
-  </section>
 
-  <!-- ══════ TOOL ══════ -->
-  <section class="section" id="tool">
-    <div class="container">
-      <h2 class="section-h">Analyze a Job Match</h2>
-      <p class="section-sub">Paste your resume and a job description. Everything runs in your browser — nothing is sent anywhere.</p>
-
-      <div class="tool-grid">
-        <div class="tool-col">
-          <div class="tool-header">
-            <label class="tool-label" for="resume-input">Your Resume</label>
-            <label class="upload-btn" for="resume-file">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload PDF
-            </label>
-            <input type="file" id="resume-file" accept=".pdf,.txt" class="file-input">
-          </div>
-          <textarea id="resume-input" class="tool-textarea" rows="12" placeholder="Paste your resume text here or upload a PDF..."></textarea>
-          <div class="tool-meta" id="resume-meta"></div>
-        </div>
-        <div class="tool-col">
-          <div class="tool-header">
-            <label class="tool-label" for="jd-input">Job Description</label>
-            <label class="upload-btn" for="jd-file">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Upload PDF
-            </label>
-            <input type="file" id="jd-file" accept=".pdf,.txt" class="file-input">
-          </div>
-          <textarea id="jd-input" class="tool-textarea" rows="12" placeholder="Paste the full job posting here or upload a PDF..."></textarea>
-          <div class="tool-meta" id="jd-meta"></div>
+    <div class="summary-grid">
+      <div class="prose rise">
+        <p>
+          I am currently a <strong>Software Developer at McKesson</strong>, building an AI agent for
+          the AI Canada team. It ingests recorded video calls and produces structured transcripts,
+          keyframe snapshots and generated summaries, then makes the resulting corpus queryable so
+          the agent can retrieve context and answer questions across past meetings.
+        </p>
+        <p>
+          Before that, four internships across three companies. At <strong>CAE</strong> I worked in a
+          C++ simulation codebase — LiDAR and infrared sensor pipelines, PowerShell automation that
+          diffed Git-versioned virtual assets to surface configuration drift, and a developer
+          productivity extension that took a recurring four-hour task down to thirty minutes.
+        </p>
+        <p>
+          At <strong>Presagis</strong> I prototyped an Omniverse digital-twin pipeline and worked
+          alongside NVIDIA research on machine-learning point-cloud workflows for robotics,
+          co-authoring three internal reports.
+        </p>
+        <p>
+          The thread through all of it is the same: find the manual step that keeps getting
+          repeated, and remove it.
+        </p>
+        <div class="stack">
+          <span class="chip">Python</span><span class="chip">C++</span><span class="chip">.NET / C#</span>
+          <span class="chip">TypeScript</span><span class="chip">Swift</span><span class="chip">SQL</span>
+          <span class="chip">LLM APIs</span><span class="chip">AWS</span><span class="chip">GCP</span>
+          <span class="chip">Docker</span><span class="chip">CI/CD</span><span class="chip">PowerShell</span>
+          <span class="chip">Unreal Engine</span><span class="chip">Omniverse</span>
         </div>
       </div>
 
-      <div class="tool-actions">
-        <button class="btn btn-primary btn-lg" id="analyze-btn" disabled>Analyze Match</button>
-        <p class="tool-hint">Both fields required. Minimum 50 characters each.</p>
-      </div>
-
-      <!-- Results -->
-      <div id="results" class="results hidden">
-
-        <!-- Quality Warning -->
-        <div class="quality-warning hidden" id="quality-warning"></div>
-
-        <!-- Score -->
-        <div class="result-score-card" id="score-card">
-          <div class="score-ring-box">
-            <svg class="score-ring" viewBox="0 0 120 120">
-              <circle cx="60" cy="60" r="52" fill="none" stroke="#e5e5e5" stroke-width="8"/>
-              <circle cx="60" cy="60" r="52" fill="none" stroke-width="8" stroke-linecap="round"
-                id="score-ring-progress" stroke-dasharray="326.7" stroke-dashoffset="326.7"
-                transform="rotate(-90 60 60)"/>
-            </svg>
-            <span class="score-num" id="score-value">0%</span>
-          </div>
-          <div class="score-info">
-            <span class="score-label">Match Score</span>
-            <span class="score-detail" id="score-detail"></span>
-          </div>
-        </div>
-
-        <!-- Category Breakdown -->
-        <div class="result-card">
-          <h3 class="result-card-h">Category Breakdown</h3>
-          <div id="breakdown-bars"></div>
-        </div>
-
-        <!-- Matched Skills -->
-        <div class="result-card">
-          <h3 class="result-card-h result-h-ok">Matched Skills (<span id="matched-count">0</span>)</h3>
-          <div id="matched-skills" class="skill-list"></div>
-        </div>
-
-        <!-- High Priority Gaps -->
-        <div class="result-card" id="high-gaps-card">
-          <h3 class="result-card-h result-h-bad">Missing — Required (<span id="high-gap-count">0</span>)</h3>
-          <p class="result-card-hint">Click a suggestion to copy it to your clipboard.</p>
-          <div id="high-gap-skills" class="skill-list"></div>
-        </div>
-
-        <!-- Low Priority Gaps -->
-        <div class="result-card" id="low-gaps-card">
-          <h3 class="result-card-h result-h-warn">Missing — Nice to Have (<span id="low-gap-count">0</span>)</h3>
-          <div id="low-gap-skills" class="skill-list"></div>
-        </div>
-
-        <button class="btn btn-ghost" id="reset-btn">Clear &amp; Start Over</button>
-      </div>
+      <aside class="facts rise">
+        <div class="fact"><div class="fact-k">Currently</div>
+          <div class="fact-v">Software Developer, McKesson</div></div>
+        <div class="fact"><div class="fact-k">Education</div>
+          <div class="fact-v">BSc Computer Science<br />Concordia University</div></div>
+        <div class="fact"><div class="fact-k">Focus</div>
+          <div class="fact-v">Backend · AI agents · Data pipelines</div></div>
+        <div class="fact"><div class="fact-k">Location</div>
+          <div class="fact-v">Montreal, QC · open to relocation</div></div>
+        <div class="fact"><div class="fact-k">Email</div>
+          <div class="fact-v"><a href="mailto:diego.crisafu@gmail.com">diego.crisafu@gmail.com</a></div></div>
+      </aside>
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- ══════ WHY NO AI ══════ -->
-  <section class="section section-dark" id="why">
-    <div class="container">
-      <h2 class="section-h">Why No AI?</h2>
-      <p class="section-sub">This isn't anti-technology. It's pro-efficiency.</p>
-
-      <div class="why-grid">
-        <div class="why-card">
-          <div class="why-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-          </div>
-          <h3>Water</h3>
-          <p>A single ChatGPT conversation uses roughly <strong>500 mL of water</strong> for datacenter cooling. Training GPT-4 consumed an estimated <strong>700,000 liters</strong>. This tool uses zero — it runs on your machine.</p>
-        </div>
-        <div class="why-card">
-          <div class="why-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          </div>
-          <h3>Energy</h3>
-          <p>An AI-powered job matching query hits GPU clusters drawing <strong>hundreds of watts</strong>. Our matching engine runs in a browser tab using <strong>milliwatts</strong> of your existing CPU. Same result, a million times less power.</p>
-        </div>
-        <div class="why-card">
-          <div class="why-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          </div>
-          <h3>Privacy</h3>
-          <p>AI tools send your resume to remote servers. Your data gets logged, stored, and potentially used for training. Here, <strong>nothing leaves your browser</strong>. Not your resume, not the job description, not the results.</p>
-        </div>
-        <div class="why-card">
-          <div class="why-icon">
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-          </div>
-          <h3>Cost</h3>
-          <p>AI job tools charge <strong>$20-50/month</strong>. Students hunting for internships shouldn't have to pay to job search. This is <strong>free, forever</strong> — no premium tier, no "credits," no upsell.</p>
-        </div>
-      </div>
-
-      <div class="why-bottom">
-        <p class="why-quote">"AI doesn't have to be everywhere. Sometimes a well-built algorithm is all you need."</p>
-      </div>
+<!-- ══════════ WORK / TIMELINE ══════════ -->
+<section class="section" id="work">
+  <div class="wrap">
+    <div class="section-head rise">
+      <p class="eyebrow">02 — Work</p>
+      <h2 class="section-title">Five years, three companies.</h2>
+      <p class="section-lead">
+        Continuous engineering work since 2021, mostly extensions — every internship
+        that could be extended, was.
+      </p>
     </div>
-  </section>
 
-  <!-- ══════ EXTENSION ══════ -->
-  <section class="section" id="extension">
-    <div class="container">
-      <h2 class="section-h">Chrome Extension</h2>
-      <p class="section-sub">Take it directly to LinkedIn. Scan job postings, track applications, autofill Easy Apply forms.</p>
-
-      <div class="ext-grid">
-        <div class="ext-features">
-          <div class="ext-feat">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>One-click job scan on any LinkedIn posting</span>
-          </div>
-          <div class="ext-feat">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Match score, gap analysis, competition intelligence</span>
-          </div>
-          <div class="ext-feat">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Kanban dashboard with drag-and-drop tracking</span>
-          </div>
-          <div class="ext-feat">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Easy Apply autofill — saves your profile locally</span>
-          </div>
-          <div class="ext-feat">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>Bilingual: English + French (Montreal market)</span>
-          </div>
-          <div class="ext-feat">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>CSV export for spreadsheet tracking</span>
-          </div>
-        </div>
-        <div class="ext-cta">
-          <div class="ext-card">
-            <h3>Install from Source</h3>
-            <ol class="ext-steps">
-              <li>Clone or download the repo from GitHub</li>
-              <li>Open <code>chrome://extensions</code></li>
-              <li>Enable <strong>Developer mode</strong></li>
-              <li>Click <strong>Load unpacked</strong> and select the folder</li>
-            </ol>
-            <a href="https://github.com/diegocrisafulli/me-lazy" target="_blank" rel="noopener" class="btn btn-primary">Get on GitHub</a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ══════ FOOTER ══════ -->
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-inner">
+    <div class="chart-card rise">
+      <div class="chart-head">
         <div>
-          <strong>Job Command Center</strong>
-          <p>Free job search intelligence. No AI. No servers. No tracking.</p>
+          <div class="chart-title">Engagements over time</div>
+          <div class="chart-note">Bar length is duration; overlaps are extensions</div>
         </div>
-        <div class="footer-links">
-          <a href="https://github.com/diegocrisafulli/me-lazy" target="_blank" rel="noopener">GitHub</a>
-          <a href="../privacy.html">Privacy Policy</a>
-        </div>
+        <div class="legend" id="legend"></div>
       </div>
-      <p class="footer-copy">Made with algorithms, not artificial intelligence. Zero water consumed in the making of this tool.</p>
+      <div id="timeline" role="img" aria-label="Timeline of roles from 2021 to 2026 across Presagis, CAE and McKesson"></div>
+      <div class="tl-axis" id="tl-axis"></div>
+      <table class="sr-only" id="tl-table"><caption>Roles and dates</caption>
+        <thead><tr><th>Role</th><th>Company</th><th>From</th><th>To</th></tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
-  </footer>
+  </div>
+</section>
 
-  <!-- Toast for clipboard -->
-  <div class="toast" id="toast">Copied!</div>
+<!-- ══════════ IMPACT ══════════ -->
+<section class="section" id="impact">
+  <div class="wrap">
+    <div class="section-head rise">
+      <p class="eyebrow">03 — Impact</p>
+      <h2 class="section-title">Measured outcomes.</h2>
+      <p class="section-lead">
+        Each figure comes from a different system, so each gets its own scale rather than
+        a shared axis that would imply they are comparable.
+      </p>
+    </div>
+    <div class="impact rise" id="impact-grid"></div>
+  </div>
+</section>
 
-  <script src="app.js"></script>
+<!-- ══════════ PROJECTS ══════════ -->
+<section class="section" id="projects">
+  <div class="wrap">
+    <div class="section-head rise">
+      <p class="eyebrow">04 — Projects</p>
+      <h2 class="section-title">Built outside of work.</h2>
+    </div>
+    <div class="projects">
+      <article class="project rise">
+        <h3>Roger</h3>
+        <div class="project-when">Jan 2026 — present</div>
+        <p>
+          A trading system that scans 100+ prediction markets every 30 seconds through an
+          asyncio ingestion pipeline, runs five concurrent strategies on the Polygon mainnet
+          through asynchronous workers, and scores them with a Bayesian engine that learns
+          from realised outcomes and stores them in SQLite.
+        </p>
+        <div class="project-tags">
+          <span class="chip">Python</span><span class="chip">asyncio</span>
+          <span class="chip">SQLite</span><span class="chip">Bayesian inference</span>
+        </div>
+      </article>
+
+      <article class="project rise">
+        <h3>Neural Narratives</h3>
+        <div class="project-when">Sep 2024 — May 2025 · with McGill Neuroscience</div>
+        <p>
+          A VR environment for exploring patient neuroimaging data. I built the pipeline that
+          converts raw datasets into structured scene graphs for Unreal Engine, and a digital
+          twin with C++ components for streaming updates that holds frame rate across
+          multiuser sessions.
+        </p>
+        <div class="project-tags">
+          <span class="chip">Unreal Engine</span><span class="chip">C++</span>
+          <span class="chip">Blender</span><span class="chip">Python</span>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ CONTACT ══════════ -->
+<section class="contact" id="contact">
+  <div class="wrap">
+    <p class="eyebrow">05 — Contact</p>
+    <h2 class="contact-title">Let's build<br /><em>something.</em></h2>
+    <a class="mail" href="mailto:diego.crisafu@gmail.com">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="2.5" y="4.5" width="19" height="15" rx="2"/><path d="m3 6 9 7 9-7"/>
+      </svg>
+      diego.crisafu@gmail.com
+    </a>
+    <div class="links">
+      <a class="link" href="https://github.com/diegocrisafu" target="_blank" rel="noopener">GitHub</a>
+      <a class="link" href="https://www.linkedin.com/in/diegocrisafulli" target="_blank" rel="noopener">LinkedIn</a>
+      <a class="link" href="tel:+15146795568">+1 514 679 5568</a>
+    </div>
+    <div class="foot">
+      <span>Montreal, Canada</span>
+      <span>Built from scratch — no template</span>
+    </div>
+  </div>
+</section>
+
+<script src="app.js"></script>
 </body>
 </html>
