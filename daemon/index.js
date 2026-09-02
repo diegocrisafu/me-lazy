@@ -33,6 +33,13 @@ async function tick() {
   const state = store.getRunnerState();
   const apps = store.getApplications();
 
+  // Classify anything that cannot be submitted unattended before choosing what
+  // to apply to. Routing a Workday role to the report is a filing decision, not
+  // an application, so it must not consume a pacing slot — otherwise the queue
+  // spends five minutes per bank posting and takes hours to reach a form it can
+  // actually fill.
+  sweepUnappliable(apps, settings);
+
   const decision = runner.decide({
     queue: Object.values(apps),
     records: apps,
@@ -71,6 +78,35 @@ async function tick() {
   }
 
   store.saveRunnerState(state);
+}
+
+
+/** Move every queued role that cannot be auto-applied into the report. */
+function sweepUnappliable(apps, settings) {
+  const answers_ = answers.defaultAnswers(settings.profile || {});
+  const missing = answers.missingCritical(answers_);
+  let moved = 0;
+
+  for (const rec of Object.values(apps)) {
+    if (rec.status !== 'queued') continue;
+    const cv = CV_PROFILES.find(p => p.id === rec.cvId);
+    const check = runner.applyability(
+      { ...rec, cvNeedsFile: cv?.enabled === false }, answers_,
+      { missingCritical: settings.runner.requireCriticalAnswers ? missing : [],
+        requireCriticalAnswers: settings.runner.requireCriticalAnswers });
+    if (check.canAuto) continue;
+
+    tracker.applyStatus(rec, 'scouted', { reason: check.reason });
+    rec.scoutReason = check.reason;
+    rec.scoutBlockers = check.blockers;
+    moved++;
+  }
+
+  if (moved) {
+    store.saveApplications(apps);
+    log(`  filed ${moved} role${moved > 1 ? 's' : ''} to the scouting report (no pacing cost)`);
+  }
+  return moved;
 }
 
 async function applyOne(id, settings = store.getSettings()) {
