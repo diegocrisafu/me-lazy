@@ -2,150 +2,254 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Application Command Center</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="light dark" />
+<title>Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<header class="topbar">
-  <div class="brand">
-    <span class="brand-mark"></span>
-    <div>
-      <h1>Application Command Center</h1>
-      <p class="brand-sub">Internship &amp; new-grad pipeline · Canada first</p>
+<!-- Icon sprite. One consistent set, drawn at 24×24, never emoji. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="i-target"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1"/></g>
+    <g id="i-grid"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></g>
+    <g id="i-send"><path d="M21 3 10.5 13.5"/><path d="M21 3l-6.5 18-4-8-8-4z"/></g>
+    <g id="i-layers"><path d="M12 3 3 8l9 5 9-5z"/><path d="M3 13l9 5 9-5"/></g>
+    <g id="i-flag"><path d="M5 21V4"/><path d="M5 4h11l-1.5 4L16 12H5"/></g>
+    <g id="i-file"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></g>
+    <g id="i-user"><circle cx="12" cy="8" r="3.5"/><path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6"/></g>
+    <g id="i-server"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></g>
+    <g id="i-x"><path d="M18 6 6 18M6 6l12 12"/></g>
+    <g id="i-ext"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></g>
+    <g id="i-down"><path d="M12 3v13"/><path d="m7 12 5 5 5-5"/><path d="M4 21h16"/></g>
+    <g id="i-check"><path d="m20 6-11 11-5-5"/></g>
+    <g id="i-search"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></g>
+    <g id="i-inbox"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v7H3v-7z"/></g>
+    <g id="i-copy"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></g>
+  </defs>
+</svg>
+
+<div class="app">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-target"/></svg>
+      </span>
+      <div>
+        <div class="brand-name">Command Center</div>
+        <div class="brand-ver">v4.0</div>
+      </div>
     </div>
-  </div>
-  <div class="topbar-actions">
-    <button class="btn btn-ghost" id="btn-export">Export CSV</button>
-    <button class="btn btn-runner" id="btn-runner">
-      <span class="runner-dot" id="runner-dot"></span>
-      <span id="runner-label">Auto-apply off</span>
+
+    <nav class="nav" aria-label="Sections">
+      <div class="nav-label">Pipeline</div>
+      <button class="nav-item" data-view="overview" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-grid"/></svg>
+        Overview
+      </button>
+      <button class="nav-item" data-view="applications">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-send"/></svg>
+        Applications <span class="nav-count" id="n-apps">0</span>
+      </button>
+      <button class="nav-item" data-view="queue">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-layers"/></svg>
+        Queue <span class="nav-count" id="n-queue">0</span>
+      </button>
+      <button class="nav-item" data-view="scouting">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-flag"/></svg>
+        Scouting <span class="nav-count" id="n-scout">0</span>
+      </button>
+
+      <div class="nav-label">Configuration</div>
+      <button class="nav-item" data-view="resumes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-file"/></svg>
+        Résumés
+      </button>
+      <button class="nav-item" data-view="profile">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-user"/></svg>
+        Profile
+      </button>
+      <button class="nav-item" data-view="sources">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-server"/></svg>
+        Sources
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <div class="status">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Checking…</span>
+      </div>
+      <div class="status-sub" id="status-sub">—</div>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1 class="page-title" id="page-title">Overview</h1>
+        <p class="page-sub" id="page-sub">Autonomous application pipeline</p>
+      </div>
+      <div class="topbar-actions">
+        <button class="btn" id="btn-export">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#i-down"/></svg>
+          Export
+        </button>
+        <button class="btn btn-primary" id="btn-runner">
+          <span id="runner-label">Loading…</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- OVERVIEW -->
+      <section id="v-overview">
+        <div class="stats" id="stats"></div>
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-head">
+              <h2 class="panel-title">Résumé performance</h2>
+              <span class="panel-hint">Assessments per application</span>
+            </div>
+            <div class="panel-body" id="cv-perf"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head">
+              <h2 class="panel-title">Recent activity</h2>
+              <span class="panel-hint">Live from the runner</span>
+            </div>
+            <div class="panel-body" id="activity"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- APPLICATIONS -->
+      <section id="v-applications" hidden>
+        <div class="filters">
+          <input type="search" id="f-search" class="input" placeholder="Search role or company…" aria-label="Search applications" />
+          <select id="f-status" class="input" aria-label="Filter by status"><option value="">All statuses</option></select>
+          <select id="f-cv" class="input" aria-label="Filter by résumé"><option value="">All résumés</option></select>
+        </div>
+        <div class="panel"><div class="table-wrap"><table>
+          <caption class="sr-only">Applications submitted</caption>
+          <thead><tr>
+            <th scope="col">Role</th><th scope="col">Company</th><th scope="col">Résumé</th>
+            <th scope="col">Sent</th><th scope="col">Status</th><th scope="col">Evidence</th>
+          </tr></thead>
+          <tbody id="apps-body"></tbody>
+        </table></div><div id="apps-empty"></div></div>
+      </section>
+
+      <!-- QUEUE -->
+      <section id="v-queue" hidden>
+        <div class="filters">
+          <input type="search" id="q-search" class="input" placeholder="Search queue…" aria-label="Search queue" />
+          <select id="q-region" class="input" aria-label="Filter by region">
+            <option value="">All regions</option><option value="CA">Canada</option><option value="US">United States</option>
+          </select>
+          <select id="q-family" class="input" aria-label="Filter by role family"><option value="">All families</option></select>
+        </div>
+        <div class="panel"><div class="table-wrap"><table>
+          <thead><tr>
+            <th scope="col">Priority</th><th scope="col">Role</th><th scope="col">Company</th>
+            <th scope="col">Family</th><th scope="col">Pay</th><th scope="col">Résumé</th>
+          </tr></thead>
+          <tbody id="queue-body"></tbody>
+        </table></div><div id="queue-empty"></div></div>
+      </section>
+
+      <!-- SCOUTING -->
+      <section id="v-scouting" hidden>
+        <div class="panel" style="margin-bottom:18px">
+          <div class="panel-body" style="padding:14px 16px">
+            <p style="font-size:13.5px;color:var(--ink-2);max-width:80ch">
+              These cleared the pay and level filters but cannot be submitted unattended —
+              usually because the employer runs Workday, which needs an account per company,
+              or redirects its board to its own site. Each entry has the link, the reason,
+              and which résumé to attach.
+            </p>
+          </div>
+        </div>
+        <div class="scout-grid" id="scout-list"></div>
+        <div id="scout-empty"></div>
+      </section>
+
+      <!-- RESUMES -->
+      <section id="v-resumes" hidden>
+        <div class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">Résumé variants</h2>
+            <span class="panel-hint">Chosen per posting by role family and keyword overlap</span>
+          </div>
+          <div class="table-wrap"><table>
+            <thead><tr>
+              <th scope="col">Variant</th><th scope="col">Serves</th><th scope="col">Queued</th>
+              <th scope="col">Sent</th><th scope="col">Assessments</th><th scope="col">Rate</th><th scope="col">File</th>
+            </tr></thead>
+            <tbody id="resumes-body"></tbody>
+          </table></div>
+        </div>
+        <div class="panel" id="claims-panel" hidden>
+          <div class="panel-head"><h2 class="panel-title">Claim rules</h2></div>
+          <div class="panel-body" id="claims-body"></div>
+        </div>
+      </section>
+
+      <!-- PROFILE -->
+      <section id="v-profile" hidden>
+        <div class="panel">
+          <div class="panel-head">
+            <h2 class="panel-title">Profile &amp; screening answers</h2>
+            <span class="panel-hint">Answers marked terminal decide automatic rejections</span>
+          </div>
+          <div class="panel-body">
+            <div class="form-grid" id="profile-form"></div>
+            <div style="display:flex;gap:12px;align-items:center;margin-top:18px">
+              <button class="btn btn-primary" id="save-profile">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><use href="#i-check"/></svg>
+                Save profile
+              </button>
+              <span class="panel-hint" id="save-note"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SOURCES -->
+      <section id="v-sources" hidden>
+        <div class="panel"><div class="table-wrap"><table>
+          <thead><tr>
+            <th scope="col">Employer</th><th scope="col">Country</th><th scope="col">System</th>
+            <th scope="col">Status</th><th scope="col">Postings</th><th scope="col">Expected OA</th>
+          </tr></thead>
+          <tbody id="sources-body"></tbody>
+        </table></div></div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden role="dialog" aria-modal="true" aria-labelledby="d-title">
+  <div class="drawer-head">
+    <div>
+      <h2 id="d-title" style="font-size:15.5px;line-height:1.35">—</h2>
+      <p id="d-co" style="font-size:13px;color:var(--ink-3);margin-top:3px">—</p>
+    </div>
+    <button class="icon-btn" id="d-close" aria-label="Close panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><use href="#i-x"/></svg>
     </button>
   </div>
-</header>
-
-<div class="runner-bar" id="runner-bar" hidden>
-  <span class="runner-state" id="runner-state">—</span>
-  <span class="runner-sep">·</span><span id="runner-today">0 sent today</span>
-  <span class="runner-sep">·</span><span id="runner-next">—</span>
-</div>
-
-<section class="alert alert-warn" id="setup-alert" hidden>
-  <div class="alert-head"><strong id="setup-title">Setup incomplete</strong></div>
-  <p class="alert-body" id="setup-body"></p>
-</section>
-
-<section class="alert" id="conflict-alert" hidden>
-  <div class="alert-head">
-    <strong>CV claim rules</strong>
-    <button class="alert-toggle" id="conflict-toggle">Details</button>
-  </div>
-  <p class="alert-body" id="conflict-summary"></p>
-  <div class="conflict-list" id="conflict-list" hidden></div>
-</section>
-
-<section class="metrics">
-  <div class="metric metric-hero"><span class="metric-value" id="m-oa">0</span>
-    <span class="metric-label">Assessments</span><span class="metric-sub" id="m-oa-rate">—</span></div>
-  <div class="metric"><span class="metric-value" id="m-queued">0</span><span class="metric-label">Queued</span></div>
-  <div class="metric"><span class="metric-value" id="m-applied">0</span><span class="metric-label">Applied</span></div>
-  <div class="metric"><span class="metric-value" id="m-scouted">0</span><span class="metric-label">Needs you</span></div>
-  <div class="metric"><span class="metric-value" id="m-interview">0</span><span class="metric-label">Interviews</span></div>
-  <div class="metric"><span class="metric-value" id="m-offers">0</span><span class="metric-label">Offers</span></div>
-  <div class="metric"><span class="metric-value" id="m-response">0%</span><span class="metric-label">Response rate</span></div>
-</section>
-
-<section class="panel">
-  <div class="panel-head"><h2>CV variant performance</h2>
-    <span class="panel-hint">Which resume is actually earning assessments</span></div>
-  <div class="cv-grid" id="cv-grid"></div>
-</section>
-
-<nav class="tabs">
-  <button class="tab tab-active" data-view="queue">Queue <span class="tab-count" id="c-queue">0</span></button>
-  <button class="tab" data-view="applications">Applications <span class="tab-count" id="c-apps">0</span></button>
-  <button class="tab" data-view="scouting">Scouting Report <span class="tab-count" id="c-scout">0</span></button>
-  <button class="tab" data-view="profile">Profile</button>
-  <button class="tab" data-view="sources">Sources</button>
-</nav>
-
-<div class="filters" id="filters">
-  <input type="search" id="f-search" class="input" placeholder="Search title or company…" />
-  <select id="f-region" class="input"><option value="">All regions</option>
-    <option value="CA">Canada</option><option value="US">United States</option></select>
-  <select id="f-family" class="input"><option value="">All families</option></select>
-  <select id="f-cv" class="input"><option value="">All CVs</option></select>
-</div>
-
-<section class="view" id="view-queue">
-  <div class="table-wrap"><table class="table"><thead><tr>
-    <th class="col-prio">Priority</th><th>Role</th><th>Company</th><th>Family</th>
-    <th>Pay</th><th>CV chosen</th><th>Assessment</th></tr></thead>
-    <tbody id="queue-body"></tbody></table></div>
-  <p class="empty" id="queue-empty" hidden>Queue is empty. Run <code>npm run hunt</code>.</p>
-</section>
-
-<section class="view" id="view-applications" hidden>
-  <div class="table-wrap"><table class="table"><thead><tr>
-    <th>Role</th><th>Company</th><th>CV used</th><th>Applied</th>
-    <th>Status</th><th>Evidence</th></tr></thead>
-    <tbody id="apps-body"></tbody></table></div>
-  <p class="empty" id="apps-empty" hidden>Nothing applied to yet.</p>
-</section>
-
-<section class="view" id="view-scouting" hidden>
-  <div class="scout-intro">
-    <h2>Roles worth your own time</h2>
-    <p>These cleared the pay and level filters but cannot be submitted unattended — most often because the employer runs Workday, which needs an account per company. Each has the link, the reason, which CV to attach, and enough of the posting to judge it.</p>
-  </div>
-  <div class="scout-list" id="scout-list"></div>
-  <p class="empty" id="scout-empty" hidden>Nothing flagged yet.</p>
-</section>
-
-<section class="view" id="view-profile" hidden>
-  <div class="panel">
-    <div class="panel-head"><h2>Profile &amp; screening answers</h2>
-      <span class="panel-hint">Six answers are terminal — auto-apply will not start without them</span></div>
-    <div class="form-grid" id="profile-form"></div>
-    <div class="form-actions">
-      <button class="btn btn-primary" id="save-profile">Save profile</button>
-      <span id="save-status" class="panel-hint"></span>
-    </div>
-  </div>
-</section>
-
-<section class="view" id="view-sources" hidden>
-  <div class="table-wrap"><table class="table"><thead><tr>
-    <th>Company</th><th>Country</th><th>ATS</th><th>Status</th><th>Jobs</th><th>Expected OA</th>
-  </tr></thead><tbody id="sources-body"></tbody></table></div>
-</section>
-
-<div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
-<aside class="drawer" id="drawer" hidden>
-  <div class="drawer-head">
-    <div><h3 id="d-title">—</h3><p id="d-company" class="drawer-sub">—</p></div>
-    <button class="drawer-close" id="drawer-close">×</button>
-  </div>
-  <div class="drawer-body">
-    <div class="d-meta" id="d-meta"></div>
-    <div class="d-section"><h4>CV selection</h4>
-      <div class="cv-choice" id="d-cv-choice"></div>
-      <p class="cv-reason" id="d-cv-reason"></p>
-      <div class="cv-bars" id="d-cv-bars"></div></div>
-    <div class="d-section" id="d-evidence-section" hidden>
-      <h4>Evidence</h4><div id="d-evidence"></div></div>
-    <div class="d-section"><h4>Status</h4>
-      <select id="d-status" class="input input-full"></select>
-      <textarea id="d-notes" class="input input-full" rows="3" placeholder="Notes…"></textarea>
-      <button class="btn btn-primary btn-full" id="d-save">Save</button></div>
-    <div class="d-section"><h4>Cover letter</h4>
-      <button class="btn btn-sm" id="d-letter-btn">Generate</button>
-      <pre class="d-desc" id="d-letter" hidden></pre></div>
-    <div class="d-section"><h4>Posting</h4>
-      <a id="d-link" class="d-link" target="_blank" rel="noopener">Open posting ↗</a>
-      <pre class="d-desc" id="d-desc"></pre></div>
-  </div>
+  <div class="drawer-body" id="d-body"></div>
 </aside>
 
 <script src="app.js"></script>

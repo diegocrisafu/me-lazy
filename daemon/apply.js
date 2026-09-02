@@ -431,12 +431,17 @@ async function fillChoiceGroups(page, answers, ctx) {
 /* ─────────── resume + cover letter upload ─────────── */
 
 async function attachFiles(page, record, ctx) {
-  const out = { resume: null, coverLetter: null };
+  const out = { resume: null, coverLetter: null, transcript: null };
   const inputs = await page.$$('input[type="file"]');
   if (!inputs.length) return out;
 
   const cvPath = path.join(CV_DIR, record.cvFile || '');
   const haveCV = record.cvFile && fs.existsSync(cvPath);
+
+  // Optional: drop transcript.pdf into cv/ and required-transcript forms
+  // become submittable instead of landing on the scouting report.
+  const transcript = ['transcript.pdf', 'Transcript.pdf']
+    .map(f => path.join(CV_DIR, f)).find(f => fs.existsSync(f)) || null;
 
   for (const input of inputs) {
     const label = (await labelFor(page, input)).toLowerCase();
@@ -444,13 +449,26 @@ async function attachFiles(page, record, ctx) {
     const hay = label + ' ' + name;
 
     const isCover = /cover|lettre|motivation/.test(hay);
-    const isResume = /resume|cv|curriculum/.test(hay) || (!isCover && !out.resume);
+    // Several employers — Five Rings, DRW — make an academic transcript a
+    // required upload, and refuse the form without one. Supplying it turns
+    // those from scouting entries back into submittable applications.
+    const isTranscript = /transcript|relev[ée]\s*de\s*notes|academic\s*record/.test(hay);
+    const isResume = (/resume|cv|curriculum/.test(hay) && !isTranscript) ||
+                     (!isCover && !isTranscript && !out.resume);
 
     try {
       let target = null;
       if (isCover && ctx.coverLetterFile) target = ctx.coverLetterFile;
+      else if (isTranscript && transcript) target = transcript;
       else if (isResume && haveCV) target = cvPath;
-      if (!target) continue;
+      if (!target) {
+        if (isTranscript) {
+          ctx.skipped.push({ label: label || 'transcript',
+            reason: 'no transcript in cv/ — add transcript.pdf to unlock these',
+            critical: true });
+        }
+        continue;
+      }
 
       await input.setInputFiles(target, { timeout: 5000 });
       // These inputs are visually-hidden and wrapped in a custom widget, so
@@ -468,7 +486,9 @@ async function attachFiles(page, record, ctx) {
         ctx.skipped.push({ label: label || 'file', reason: 'file did not attach', critical: isResume });
         continue;
       }
-      if (isCover) out.coverLetter = attached; else out.resume = attached;
+      if (isCover) out.coverLetter = attached;
+      else if (isTranscript) out.transcript = attached;
+      else out.resume = attached;
     } catch (e) {
       ctx.skipped.push({ label: label || 'file input', reason: 'upload failed: ' + e.message,
                          critical: isResume });

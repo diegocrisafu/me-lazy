@@ -51,7 +51,7 @@ function scoutingReport() {
         ? 'Workday needs an account with this employer'
         : 'employer runs its own application flow'),
       blockers: r.scoutBlockers || [],
-      summary: (r.description || '').replace(/\s+/g, ' ').slice(0, 420),
+      summary: (r.description || '').replace(/\s+/g, ' ').slice(0, 300),
       evidence: r.applyResult?.dir || null,
       foundAt: r.foundAt
     }))
@@ -63,12 +63,28 @@ const server = http.createServer(async (req, res) => {
   const p = url.pathname;
 
   try {
+    // One application in full, for the detail panel. The list endpoint omits
+    // descriptions, so they are fetched only for the record actually opened.
+    if (p === '/api/application' && req.method === 'GET') {
+      const apps = store.getApplications();
+      const rec = apps[url.searchParams.get('id')];
+      return rec ? json(res, 200, { application: rec }) : json(res, 404, { error: 'unknown' });
+    }
+
     if (p === '/api/state') {
       const apps = store.getApplications();
       const s = store.getSettings();
       const ans = answers.defaultAnswers(s.profile || {});
+      // Descriptions dominate the payload — 400 records of full posting text
+      // is megabytes re-sent on every poll, for text the list never renders.
+      const slim = {};
+      for (const [id, r] of Object.entries(apps)) {
+        const { description, coverLetter, ...rest } = r;
+        slim[id] = rest;
+      }
+
       return json(res, 200, {
-        applications: apps,
+        applications: slim,
         metrics: tracker.metrics(apps),
         cv: tracker.cvPerformance(apps, CV_PROFILES),
         companies: tracker.companyPerformance(apps),
