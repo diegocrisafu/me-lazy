@@ -23,6 +23,63 @@ const store = require('./store.js');
 
 const CV_DIR = path.join(__dirname, '..', 'cv');
 
+/* ─────────── batch field survey ───────────
+   Reading a label and a control's state one element at a time costs two
+   browser round-trips each. A form with a hundred controls, surveyed twice,
+   is four hundred round-trips before a single character is typed — which is
+   how the fill budget expired mid-form on the larger applications. Collect
+   it all in one pass, then only reach back into the page for the controls
+   actually worth filling. */
+
+async function surveyFields(page) {
+  return page.evaluate(() => {
+    const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+
+    function labelOf(el) {
+      if (el.id) {
+        const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+        if (l && clean(l.textContent)) return clean(l.textContent);
+      }
+      const own = el.closest('label');
+      if (own && clean(own.textContent)) return clean(own.textContent);
+      const aria = el.getAttribute('aria-label');
+      if (aria) return clean(aria);
+      const by = el.getAttribute('aria-labelledby');
+      if (by) {
+        const t = by.split(/\s+/).map(id => document.getElementById(id)?.textContent || '').join(' ');
+        if (clean(t)) return clean(t);
+      }
+      let node = el.parentElement;
+      for (let i = 0; i < 4 && node; i++, node = node.parentElement) {
+        const l = node.querySelector('label, legend, [class*="label"]');
+        if (l && !l.contains(el) && clean(l.textContent)) return clean(l.textContent);
+      }
+      return clean(el.placeholder || el.name || '');
+    }
+
+    const out = [];
+    document.querySelectorAll('input, textarea, select').forEach((el, i) => {
+      const cls = (el.className || '').toString();
+      out.push({
+        i,
+        tag: el.tagName.toLowerCase(),
+        type: (el.type || '').toLowerCase(),
+        name: el.name || '',
+        hasValue: Boolean(el.value && el.value.trim()),
+        disabled: el.disabled || el.readOnly,
+        visible: Boolean(el.offsetParent || el.getClientRects().length),
+        maxLength: el.maxLength,
+        isProxy: /requiredInput/i.test(cls),
+        isCombo: el.getAttribute('role') === 'combobox' ||
+                 /select__input/.test(cls) ||
+                 Boolean(el.closest('[class*="select__container"]')),
+        label: labelOf(el)
+      });
+    });
+    return out;
+  }).catch(() => []);
+}
+
 /* ─────────── field discovery ─────────── */
 
 /** The visible question text for a control, tried in order of reliability. */
@@ -58,34 +115,13 @@ async function labelFor(page, handle) {
 
 /* ─────────── filling ─────────── */
 
-async function fillField(page, handle, answers, ctx) {
-  const info = await handle.evaluate((el) => ({
-    tag: el.tagName.toLowerCase(),
-    type: (el.type || '').toLowerCase(),
-    name: el.name || '',
-    value: el.value || '',
-    disabled: el.disabled || el.readOnly,
-    visible: !!(el.offsetParent || el.getClientRects().length),
-    maxLength: el.maxLength,
-    isRequiredProxy: /requiredInput/i.test(el.className || '')
-  }));
-
-  if (info.disabled || !info.visible) return null;
-  if (['hidden', 'submit', 'button', 'image', 'reset'].includes(info.type)) return null;
-  if (info.type === 'file') return null;            // handled separately
-  if (info.value && info.value.trim()) return null; // never overwrite
-
-  // react-select renders TWO inputs per dropdown: the real combobox, and a
-  // hidden proxy carrying `required` purely so HTML5 validation fires. The
-  // proxy can never be filled, and treating it as the combobox means the
-  // real one is driven by a click that lands on the wrong element.
-  if (info.isRequiredProxy) return null;
-
-  let label = await labelFor(page, handle);
+/** @param info  one row from surveyFields(), so no round-trip is needed here */
+async function fillField(page, handle, info, answers, ctx) {
+  let label = info.label;
 
   // Consent controls frequently carry no readable label at all — only a name
   // like "gdpr_demographic_data_consent_given". Fall back to the name so the
-  // control is still recognised rather than silently left blocking the form.
+  // control is still recognised rather than silently blocking the form.
   if (!label) {
     const raw = (info.name || '').replace(/[_\[\]]+/g, ' ').trim();
     if (!raw) return null;
@@ -103,7 +139,7 @@ async function fillField(page, handle, answers, ctx) {
       return await setChoice(page, handle, label, r.value)
         ? { field: r.ruleId, label, value: r.value, kind: 'choice' } : null;
     }
-    if (await isCombobox(handle)) {
+    if (info.isCombo) {
       // Try each acceptable phrasing until the menu accepts one.
       let rendered = '';
       for (const candidate of (r.alternatives || [r.value])) {
@@ -638,11 +674,22 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     // Fill, then fill again — some forms reveal conditional questions only
     // after an earlier answer is set.
     for (let pass = 0; pass < 2; pass++) {
+      const survey = await surveyFields(page);
       const controls = await page.$$('input, textarea, select');
-      for (const c of controls) {
+
+      // Only reach into the page for controls that could actually take a
+      // value. Skipping the rest here — rather than inside fillField after
+      // two round-trips — is what keeps a large form inside the budget.
+      const worth = survey.filter(f =>
+        !f.disabled && f.visible && !f.hasValue && !f.isProxy &&
+        !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes(f.type));
+
+      for (const info of worth) {
         if (Date.now() > deadline) { ctx.skipped.push({ label: '(remaining fields)',
           reason: 'time budget exhausted', critical: true }); break; }
-        const r = await fillField(page, c, answers, ctx).catch(() => null);
+        const handle = controls[info.i];
+        if (!handle) continue;
+        const r = await fillField(page, handle, info, answers, ctx).catch(() => null);
         if (r && !filled.some(f => f.label === r.label)) filled.push(r);
       }
       if (pass === 0) await page.waitForTimeout(800);

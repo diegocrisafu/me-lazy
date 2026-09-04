@@ -128,7 +128,24 @@ const ANSWER_RULES = [
     from: 'preferredDepartment' },
   { id: 'militaryService', re: /served\s*in\s*the\s*military|military\s*service|armed\s*forces/i,
     from: 'militaryService' },
-  { id: 'currentEmployer', re: /current\s*(?:employer|company)|present\s*employer/i, from: 'currentEmployer' },
+  { id: 'currentEmployer', re: /current\s*(?:employer|company)|present\s*employer|company\s*name|employer\s*name|most\s*recent\s*(?:employer|company)/i,
+    from: 'currentEmployer' },
+  { id: 'currentTitle', re: /^title$|job\s*title|current\s*(?:role|position|title)|most\s*recent\s*(?:title|role)/i,
+    from: 'currentTitle' },
+  { id: 'employmentAgreement', critical: false,
+    re: /employment\s*agreement|non[\s-]?compete|post[\s-]?employment\s*(?:restriction|obligation)|restrictive\s*covenant/i,
+    from: 'employmentAgreements' },
+  { id: 'reasonableAccommodation',
+    re: /essential\s*functions|reasonable\s*accommodation/i, from: 'canPerformDuties' },
+  { id: 'previouslyWorkedHere',
+    re: /(?:ever\s*)?worked\s*(?:for|at)\s*\w+|previously\s*(?:been\s*)?employed|former\s*employee/i,
+    from: 'previouslyApplied' },
+  { id: 'conflictsOfInterest',
+    re: /personal\/?familial\s*relationship|outside\s*business\s*activit|intellectual\s*property\s*ownership|government\s*official|conflict\s*of\s*interest/i,
+    from: 'conflictsOfInterest' },
+  { id: 'singleRoleAck',
+    re: /reviewed\s*for\s*one\s*position|apply\s*to\s*your\s*top\s*choice|one\s*position\s*at\s*a\s*time/i,
+    from: 'acknowledge' },
   { id: 'noticePeriodQ', re: /notice\s*period|when\s*could\s*you\s*(?:join|begin)/i, from: 'noticePeriod' },
   { id: 'programmingLanguages', re: /programming\s*languages?|which\s*languages?\s*(?:do\s*you|are\s*you)|preferred\s*language/i,
     from: 'programmingLanguages' },
@@ -199,9 +216,17 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     degree: "Bachelor's Degree",
     fieldOfStudy: cvFacts.fieldOfStudy || 'Computer Science',
     gpa: cvFacts.gpa || '3.0',
-    gradDate: (() => { const g = cvFacts.gradDate || '2026-09';
+    // Graduation menus phrase this every possible way: a month and year, a
+    // bare year, or a bracket like "Prior to December 2026". Offer all three
+    // shapes so whichever the form uses, one of them scores a match.
+    gradDate: (() => {
+      const g = cvFacts.gradDate || '2026-09';
       const [y, m] = g.split('-');
-      return MONTHS[parseInt(m, 10) - 1] + ' ' + y; })(),
+      const month = MONTHS[parseInt(m, 10) - 1];
+      return [ month + ' ' + y, y, month,
+               'Prior to December ' + y, 'Before December ' + y,
+               'On or before ' + month + ' ' + y, g ];
+    })(),
     // Split forms want these separately; derive rather than ask twice.
     gradMonth: MONTHS[parseInt((cvFacts.gradDate || '2026-09').split('-')[1], 10) - 1] || 'September',
     gradYear: (cvFacts.gradDate || '2026-09').split('-')[0],
@@ -257,6 +282,13 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
        'Quantitative Research', 'Any', 'No preference'],
     militaryService: profile.militaryService || 'No',
     currentEmployer: profile.currentEmployer || 'McKesson',
+    currentTitle: profile.currentTitle || 'Software Developer',
+    // No non-compete, no conflicts, able to do the job — all "No"/"Yes"
+    // answers that were blocking forms purely because no rule existed.
+    employmentAgreements: profile.employmentAgreements || 'No',
+    canPerformDuties: profile.canPerformDuties || 'Yes',
+    conflictsOfInterest: profile.conflictsOfInterest || 'No',
+    acknowledge: profile.acknowledge || ['Yes', 'I acknowledge', 'I understand', 'I agree'],
     programmingLanguages: profile.programmingLanguages || 'Python, C++, Java, JavaScript',
     yearsExperience: profile.yearsExperience || '2',
     graduationTerm: profile.graduationTerm || ['Summer', 'Summer 2027', 'Any'],
