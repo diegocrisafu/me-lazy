@@ -480,16 +480,30 @@ async function attachFiles(page, record, ctx) {
     .map(f => path.join(CV_DIR, f)).find(f => fs.existsSync(f)) || null;
 
   for (const input of inputs) {
-    const label = (await labelFor(page, input)).toLowerCase();
-    const name = (await input.evaluate(el => (el.name || '') + ' ' + (el.id || ''))).toLowerCase();
+    // File widgets label the button, not the question — both inputs on a
+    // Greenhouse form read "Attach", so the label alone cannot tell a résumé
+    // slot from a transcript slot. Read the surrounding block's text instead.
+    const context = await input.evaluate(el => {
+      const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+      let node = el.parentElement, best = '';
+      for (let i = 0; i < 5 && node; i++, node = node.parentElement) {
+        const t = clean(node.textContent);
+        if (t.length > best.length && t.length < 400) best = t;
+        if (/transcript|resume|cv\b|cover\s*letter/i.test(best)) break;
+      }
+      return { text: best, name: (el.name || '') + ' ' + (el.id || '') };
+    }).catch(() => ({ text: '', name: '' }));
+
+    const label = context.text.toLowerCase();
+    const name = context.name.toLowerCase();
     const hay = label + ' ' + name;
 
     const isCover = /cover|lettre|motivation/.test(hay);
     // Several employers — Five Rings, DRW — make an academic transcript a
-    // required upload, and refuse the form without one. Supplying it turns
+    // required upload and refuse the form without one. Supplying it turns
     // those from scouting entries back into submittable applications.
-    const isTranscript = /transcript|relev[ée]\s*de\s*notes|academic\s*record/.test(hay);
-    const isResume = (/resume|cv|curriculum/.test(hay) && !isTranscript) ||
+    const isTranscript = /transcript|relev[ée]\s*de\s*notes|academic\s*record|grade\s*report/.test(hay);
+    const isResume = (/resume|cv\b|curriculum/.test(hay) && !isTranscript) ||
                      (!isCover && !isTranscript && !out.resume);
 
     try {
@@ -497,6 +511,11 @@ async function attachFiles(page, record, ctx) {
       if (isCover && ctx.coverLetterFile) target = ctx.coverLetterFile;
       else if (isTranscript && transcript) target = transcript;
       else if (isResume && haveCV) target = cvPath;
+      if (!target && !isCover && !isResume && !isTranscript && transcript && !out.transcript) {
+        // An unrecognised extra file slot on a form that already has a résumé
+        // is, on these employers, the transcript request.
+        target = transcript;
+      }
       if (!target) {
         if (isTranscript) {
           ctx.skipped.push({ label: label || 'transcript',
