@@ -814,11 +814,16 @@ async function applyTo(ctxBrowser, record, opts = {}) {
       } else {
         await btn.click();
         await page.waitForTimeout(6000);
-        submitted = await confirmSubmitted(page);
+        const outcome = await confirmSubmitted(page);
+        submitted = outcome === true;
+        if (outcome === 'challenge') {
+          blocked = 'Greenhouse asked for an emailed security code — ' +
+                    'open the link, paste the code and resubmit';
+        }
         const after = path.join(dir, 'after-submit.png');
         await page.screenshot({ path: after, fullPage: true }).catch(() => {});
         shots.push(after);
-        if (!submitted) blocked = 'clicked submit but no confirmation appeared';
+        if (!submitted && !blocked) blocked = 'clicked submit but no confirmation appeared';
       }
     }
 
@@ -851,6 +856,13 @@ async function applyTo(ctxBrowser, record, opts = {}) {
 /** Did the page actually acknowledge the submission? */
 async function confirmSubmitted(page) {
   const text = await page.evaluate(() => document.body.innerText.slice(0, 4000)).catch(() => '');
+
+  // Greenhouse sometimes challenges a submission with a code emailed to the
+  // applicant, and the application is not filed until that code is entered.
+  // The page looks nothing like a failure, so without this it reads as sent.
+  if (/security code|verification code|enter the code|resubmit your application/i.test(text)) {
+    return 'challenge';
+  }
   const positive = /thank you|application (?:has been )?(?:submitted|received|sent)|we(?:'ve| have) received|submission (?:received|successful)|merci|candidature (?:re[çc]ue|envoy[ée]e)/i;
   const stillForm = await page.$('input[type="file"], button:has-text("Submit")');
   if (positive.test(text)) return true;

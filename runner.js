@@ -24,6 +24,11 @@ const RUNNER_DEFAULTS = {
   applyEveryMinutes: 7,         // one application per ~7 min, jittered
   jitterPercent: 45,
   dailyCap: 25,
+  // Applying thirteen times to one employer does not multiply the odds — it
+  // reads as spam to their recruiters and trips the ATS's own abuse checks.
+  // Greenhouse began challenging applications with an emailed security code
+  // after a run of them to a single company.
+  perCompanyDailyCap: 3,
   maxConsecutiveFailures: 4,    // pause rather than hammer a broken form
   quietHours: { start: 23, end: 7 },  // local time; nobody applies at 4am
   requireCriticalAnswers: true
@@ -101,8 +106,30 @@ function decide(state, cfg = {}) {
              waitMinutes: Math.ceil((state.nextApplyGapMinutes || c.applyEveryMinutes) - sinceApplyMin) };
   }
 
-  // Highest expected assessments first.
-  const next = queue.slice().sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
+  // Spread the day across employers. Without this the queue is worked in
+  // pure priority order, which exhausts one company's postings before
+  // reaching the next — 74% of a run went to two firms.
+  const today = todayKey(now);
+  const perCompany = {};
+  for (const r of Object.values(state.records || {})) {
+    if (r.appliedAt && r.appliedAt.slice(0, 10) === today) {
+      perCompany[r.companyId] = (perCompany[r.companyId] || 0) + 1;
+    }
+  }
+
+  const eligible = queue.filter(j =>
+    (perCompany[j.companyId] || 0) < c.perCompanyDailyCap);
+
+  if (!eligible.length) {
+    return queue.length
+      ? { action: 'wait', reason:
+          `every queued employer is at today's per-company cap of ${c.perCompanyDailyCap}`,
+          waitMinutes: 60 }
+      : { action: 'hunt', reason: 'nothing left to apply to' };
+  }
+
+  // Highest expected assessments first, among employers not yet capped.
+  const next = eligible.slice().sort((a, b) => (b.priority || 0) - (a.priority || 0))[0];
   if (!next) return { action: 'hunt', reason: 'nothing left to apply to' };
 
   return {
