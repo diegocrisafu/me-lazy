@@ -279,6 +279,24 @@ function classifyLocation(job) {
   return { region: 'OTHER', remote };
 }
 
+/* ─────────── CITY PREFERENCE ───────────
+   Region alone is too coarse: a Vancouver role and a Toronto role are both
+   "CA" but are not equally useful to someone in Montreal. These are the
+   cities worth ranking above the rest. */
+
+const PREFERRED_CITIES = [
+  { re: /montr[ée]al/i,            weight: 1.14 },
+  { re: /\btoronto\b|\bgta\b/i,  weight: 1.12 },
+  { re: /new\s*york|\bnyc\b|manhattan/i, weight: 1.08 },
+  { re: /ottawa|waterloo|kitchener/i, weight: 1.04 }
+];
+
+function cityWeight(location = '') {
+  const s = String(location);
+  for (const { re, weight } of PREFERRED_CITIES) if (re.test(s)) return weight;
+  return 1.0;
+}
+
 /* ─────────── ELIGIBILITY ─────────── */
 
 const DEFAULT_RULES = {
@@ -394,6 +412,9 @@ function oaPriority(job, evaluation, matchScore = 0, opts = {}) {
     ? (evaluation.location.region === 'CA' ? 1.0 : 0.82)
     : 1.0;
 
+  // Within a region, rank the cities that are actually convenient.
+  const cityBoost = cityWeight(job.location);
+
   // Quant and big tech automate assessments far more consistently than
   // the median employer, and that is already priced into oaLikelihood —
   // this only nudges ties.
@@ -401,18 +422,19 @@ function oaPriority(job, evaluation, matchScore = 0, opts = {}) {
 
   const score = 100
     * (0.42 * oa + 0.24 * fresh + 0.20 * fit + 0.14 * levelBoost)
-    * regionBoost * sectorBoost;
+    * regionBoost * cityBoost * sectorBoost;
 
   return {
     score: Math.round(score * 10) / 10,
-    parts: { oa, fresh, fit, levelBoost, regionBoost, sectorBoost }
+    parts: { oa, fresh, fit, levelBoost, regionBoost, cityBoost, sectorBoost }
   };
 }
 
 const __targeting = {
     classifyLevel, isDevRole, classifyFamily, ROLE_FAMILIES, requiredYears, classifyLocation,
     evaluate, oaPriority, freshnessFactor, DEFAULT_RULES, ENTRY_EVIDENCE,
-  requiresReturnToSchool, RETURN_TO_SCHOOL, requiresAdvancedDegree, readsSenior
+  requiresReturnToSchool, RETURN_TO_SCHOOL, requiresAdvancedDegree, readsSenior,
+  cityWeight, PREFERRED_CITIES
   };
 
 // Node (tests) and browser / service-worker (importScripts or <script>)

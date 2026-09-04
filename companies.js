@@ -106,9 +106,8 @@ const COMPANIES = [
 
   { id:'jane-street', name:'Jane Street', tier:2, country:'US', sector:'quant',
     ats:'greenhouse', token:'janestreet', verified:true, jobs:234,
-    // Redirects its board URL to www.janestreet.com — no fillable form there,
-    // so postings go to the scouting report instead of the apply queue.
-    autoApply: false,
+    // Redirects to www.janestreet.com, but the destination carries a full 17-field
+    // form — a redirect alone was the wrong test for fillability.
     oa:{ likelihood:0.8, platform:'Custom', note:'Also hires into NYC from Canadian schools' } },
 
   { id:'optiver', name:'Optiver', tier:2, country:'US', sector:'quant',
@@ -135,9 +134,8 @@ const COMPANIES = [
 
   { id:'squarepoint', name:'Squarepoint Capital', tier:2, country:'US', sector:'quant',
     ats:'greenhouse', token:'squarepointcapital', verified:true, jobs:91,
-    // Redirects its board URL to www.squarepoint-capital.com — no fillable form there,
-    // so postings go to the scouting report instead of the apply queue.
-    autoApply: false,
+    // Redirects to www.squarepoint-capital.com, but the destination carries a full 22-field
+    // form — a redirect alone was the wrong test for fillability.
     oa:{ likelihood:0.85, platform:'HackerRank' } },
 
   { id:'akuna', name:'Akuna Capital', tier:2, country:'US', sector:'quant',
@@ -471,6 +469,39 @@ const COMPANIES = [
     ats:'greenhouse', token:'highnote', verified:true, jobs:4,
     oa:{ likelihood:0.45, platform:'unknown' } },
 
+
+  /* ═══════════ SCREENED ON FORM, NOT ON REDIRECT ═══════════
+     Each verified by loading a real posting and counting visible, fillable
+     controls at whatever URL it ends on. */
+
+  { id:'cloudflare', name:'Cloudflare', tier:2, country:'US', sector:'bigtech',
+    ats:'greenhouse', token:'cloudflare', verified:true, jobs:330,
+    oa:{ likelihood:0.6, platform:'CodeSignal' } },
+
+  { id:'okta', name:'Okta', tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'okta', verified:true, jobs:313,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'twilio', name:'Twilio', tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'twilio', verified:true, jobs:147,
+    oa:{ likelihood:0.5, platform:'CodeSignal' } },
+
+  { id:'spotify', name:'Spotify', tier:2, country:'US', sector:'bigtech',
+    ats:'lever', token:'spotify', verified:true, jobs:77,
+    oa:{ likelihood:0.55, platform:'CodeSignal' } },
+
+  { id:'twitch', name:'Twitch', tier:2, country:'US', sector:'bigtech',
+    ats:'greenhouse', token:'twitch', verified:true, jobs:47,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'wise', name:'Wise', tier:2, country:'US', sector:'fintech',
+    ats:'greenhouse', token:'wise', verified:true, jobs:22,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'zapier', name:'Zapier', tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'zapier', verified:true, jobs:6,
+    oa:{ likelihood:0.45, platform:'unknown' } },
+
   /* ═══════════ TIER 3 — CUSTOM ADAPTERS ═══════════ */
 
 
@@ -554,6 +585,39 @@ const COMPANIES = [
   { id:'sofi', name:'SoFi', tier:2, country:'US', sector:'fintech',
     ats:'greenhouse', token:'sofi', verified:true, jobs:60,
     oa:{ likelihood:0.6, platform:'HackerRank' } },
+
+
+  /* ═══════════ SCREENED ON FORM, NOT ON REDIRECT ═══════════
+     Each verified by loading a real posting and counting visible, fillable
+     controls at whatever URL it ends on. */
+
+  { id:'cloudflare', name:'Cloudflare', tier:2, country:'US', sector:'bigtech',
+    ats:'greenhouse', token:'cloudflare', verified:true, jobs:330,
+    oa:{ likelihood:0.6, platform:'CodeSignal' } },
+
+  { id:'okta', name:'Okta', tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'okta', verified:true, jobs:313,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'twilio', name:'Twilio', tier:2, country:'US', sector:'tech',
+    ats:'greenhouse', token:'twilio', verified:true, jobs:147,
+    oa:{ likelihood:0.5, platform:'CodeSignal' } },
+
+  { id:'spotify', name:'Spotify', tier:2, country:'US', sector:'bigtech',
+    ats:'lever', token:'spotify', verified:true, jobs:77,
+    oa:{ likelihood:0.55, platform:'CodeSignal' } },
+
+  { id:'twitch', name:'Twitch', tier:2, country:'US', sector:'bigtech',
+    ats:'greenhouse', token:'twitch', verified:true, jobs:47,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'wise', name:'Wise', tier:2, country:'US', sector:'fintech',
+    ats:'greenhouse', token:'wise', verified:true, jobs:22,
+    oa:{ likelihood:0.55, platform:'unknown' } },
+
+  { id:'zapier', name:'Zapier', tier:2, country:'US', sector:'tech',
+    ats:'ashby', org:'zapier', verified:true, jobs:6,
+    oa:{ likelihood:0.45, platform:'unknown' } },
 
   /* ═══════════ TIER 3 — CUSTOM ADAPTERS ═══════════ */
 
