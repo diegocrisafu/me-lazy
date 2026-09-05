@@ -267,6 +267,49 @@ function matchDate(want, options = []) {
   return latest;
 }
 
+
+/* ── A Yes/No fact against options that are sentences ──
+   Cloudflare asks when you would start after an internship and offers
+   "Immediately after the internship ends" or "Need to return to school and
+   available upon graduation". That is the return-to-school fact wearing
+   different clothes. Text similarity cannot see it; the concept can. */
+
+const CONCEPTS = {
+  furtherEducation: {
+    Yes: /return(ing)?\s*to\s*(school|university|studies|the\s*program)|upon\s*graduation|still\s*(be\s*)?enrolled|complete\s*my\s*(degree|studies)|after\s*i\s*graduate/i,
+    No:  /immediately|right\s*away|as\s*soon\s*as|no\s*further\s*(study|education)|already\s*graduat|will\s*have\s*graduat|full[-\s]?time\s*(immediately|upon)/i
+  },
+  relocate: {
+    Yes: /willing\s*to\s*relocat|open\s*to\s*relocat|would\s*relocat|yes.*relocat/i,
+    No:  /not\s*willing\s*to\s*relocat|remote\s*only|cannot\s*relocat/i
+  },
+  previouslyWorkedHere: {
+    Yes: /i\s*(currently|previously)\s*(work|worked)|i\s*have\s*(worked|previously)/i,
+    No:  /never\s*worked|no\s*prior|have\s*not\s*worked/i
+  }
+};
+
+/**
+ * Which option expresses a Yes/No fact, when the options are sentences.
+ * @param {string} ruleId  the rule the answer bank matched
+ * @param {string} value   'Yes' or 'No'
+ * @param {string[]} options
+ * @returns {number} index, or -1
+ */
+function matchConcept(ruleId, value, options = []) {
+  const c = CONCEPTS[ruleId];
+  const v = String(value).trim();
+  if (!c || (v !== 'Yes' && v !== 'No')) return -1;
+
+  const hits = [];
+  for (let i = 0; i < options.length; i++) {
+    if (c[v].test(options[i])) hits.push(i);
+  }
+  // Only when it is the one option meaning that, so a near-miss never
+  // becomes a claim about your plans that you did not make.
+  return hits.length === 1 ? hits[0] : -1;
+}
+
 /**
  * Decide an answer for a question no rule recognised.
  *
@@ -294,6 +337,23 @@ function resolve(question, options = [], answers = {}) {
     }
     const match = usable.find(o => (p.value === 'Yes' ? YES : NO).test(o));
     return match ? { value: match, why: p.why, confidence: 'high' } : null;
+  }
+
+  // The options can identify a question the words did not. Cloudflare's
+  // "when would you be available to start" says nothing recognisable, but it
+  // offers exactly one option meaning "I am going back to school" and one
+  // meaning "I am not" — which is a question the profile already answers.
+  if (usable.length > 1) {
+    for (const [field, pat] of Object.entries(CONCEPTS)) {
+      const yes = usable.filter(o => pat.Yes.test(o));
+      const no = usable.filter(o => pat.No.test(o));
+      if (yes.length !== 1 || no.length !== 1 || yes[0] === no[0]) continue;
+      const held = answers[field];
+      const v = Array.isArray(held) ? held[0] : held;
+      if (v !== 'Yes' && v !== 'No') continue;
+      return { value: v === 'Yes' ? yes[0] : no[0],
+               why: `${field} is ${v}`, confidence: 'high' };
+    }
   }
 
   // Sentence options with a question that still has a clear polarity. Only
@@ -327,6 +387,6 @@ function resolve(question, options = [], answers = {}) {
   return null;
 }
 
-const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, monthIndex, quantity, interval, facts };
+const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, matchConcept, monthIndex, quantity, interval, facts };
 if (typeof module !== 'undefined' && module.exports) module.exports = __resolver;
 if (typeof self !== 'undefined') self.__resolver = __resolver;

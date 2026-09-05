@@ -650,3 +650,22 @@ test('returning to school after an internship is the further-education question'
   assert.equal(answers.answerFor(q, back).ruleId, 'furtherEducation');
   assert.equal(answers.answerFor('Which university do you attend?', back).ruleId, 'school');
 });
+
+test('options identify a question the words do not', () => {
+  const resolver = require('../resolver.js');
+  const opts = ['Immediately after the internship ends',
+                'Need to return to school and available upon graduation'];
+  const q = 'A successful internship may lead to consideration for a full-time ' +
+            'opportunity. If you were to receive a full-time offer, when would ' +
+            'you be available to start?';
+
+  // Nothing in the question is recognisable, but the options are exactly the
+  // return-to-school dichotomy, which the profile already answers.
+  const back = answers.defaultAnswers({}, { gradDate: '2026-09' },
+    { region: 'US', returnToSchool: true });
+  assert.match(resolver.resolve(q, opts, back).value, /return to school/);
+
+  const done = answers.defaultAnswers({}, { gradDate: '2026-09' },
+    { region: 'US', returnToSchool: false });
+  assert.match(resolver.resolve(q, opts, done).value, /^Immediately/);
+});

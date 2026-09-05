@@ -150,7 +150,7 @@ async function fillField(page, handle, info, answers, ctx) {
       // Try each acceptable phrasing until the menu accepts one.
       let rendered = '';
       for (const candidate of (r.alternatives || [r.value])) {
-        rendered = await fillCombobox(page, handle, candidate);
+        rendered = await fillCombobox(page, handle, candidate, r.ruleId);
         if (rendered) break;
       }
       if (!rendered) {
@@ -424,7 +424,7 @@ async function pickSoleAffirmative(page, input) {
   return readComboValue(page, input);
 }
 
-async function fillCombobox(page, input, value) {
+async function fillCombobox(page, input, value, ruleId = null) {
   const want = String(value);
 
   // Every interaction gets an explicit short timeout. Playwright's default
@@ -477,6 +477,13 @@ async function fillCombobox(page, input, value) {
     const dated = RESOLVER.matchDate(want, texts);
     if (dated >= 0) {
       await clickOptionAt(page, dated);
+      await page.waitForTimeout(220);
+      return readComboValue(page, input);
+    }
+    // Or a Yes/No fact whose options are written as sentences.
+    const concept = RESOLVER.matchConcept(ruleId, want, texts);
+    if (concept >= 0) {
+      await clickOptionAt(page, concept);
       await page.waitForTimeout(220);
       return readComboValue(page, input);
     }
