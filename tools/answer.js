@@ -82,4 +82,28 @@ const ask = q => new Promise(res => rl.question(q, res));
   const left = items.filter(e => !e.answer).length;
   console.log(`\nSaved ${answered}. ${left} still unanswered.`);
   console.log('These are now used verbatim, ahead of any rule or inference.');
+
+  // Postings the daemon parked on a question you have now answered go back in
+  // the queue. Without this, answering fixes only the next posting the runner
+  // happens to reach, and the forty already held stay held.
+  const store = require('../daemon/store.js');
+  const answeredKeys = new Set(items.filter(e => e.answer).map(e => e.key));
+  const keyOf = q => String(q).toLowerCase().replace(/[^a-z0-9\s?]/g, ' ')
+    .replace(/\s+/g, ' ').trim().slice(0, 120);
+
+  const apps = store.getApplications();
+  let released = 0;
+  for (const rec of Object.values(apps)) {
+    if (rec.status !== 'scouted' || !rec.scoutBlockers?.length) continue;
+    // Only when every question that stopped it now has an answer.
+    if (!rec.scoutBlockers.every(b => answeredKeys.has(keyOf(b)))) continue;
+    rec.status = 'queued';
+    delete rec.scoutReason; delete rec.scoutBlockers;
+    delete rec.applyResult; delete rec.blockedWithSibling;
+    released++;
+  }
+  if (released) {
+    store.saveApplications(apps);
+    console.log(`${released} posting${released === 1 ? '' : 's'} released back into the queue.`);
+  }
 })();

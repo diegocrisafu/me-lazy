@@ -8,6 +8,8 @@
    application, or nothing at all.
    ═══════════════════════════════════════════ */
 
+const fs = require('fs');
+const path = require('path');
 const store = require('./store.js');
 const browser = require('./browser.js');
 const runner = require('../runner.js');
@@ -25,6 +27,44 @@ let stopping = false;
 // UTC stamps here made a four-minute-old entry look two hours stale.
 const log = (...a) => console.log(
   new Date().toLocaleTimeString('en-CA', { hour12: false }), ...a);
+
+
+/* Questions that actually stopped a real application, written into the same
+   book tools/answer.js reads. The harvester samples one posting per employer;
+   this catches what the sample missed, ranked by how many postings it froze. */
+const BOOK_PATH = path.join(__dirname, '..', 'data', 'answer-book.json');
+
+function recordBlockers(rec, postings) {
+  let book;
+  try { book = JSON.parse(fs.readFileSync(BOOK_PATH, 'utf8')); }
+  catch { book = { needsYou: [] }; }
+  book.needsYou = book.needsYou || [];
+
+  const keyOf = q => String(q).toLowerCase().replace(/[^a-z0-9\s?]/g, ' ')
+    .replace(/\s+/g, ' ').trim().slice(0, 120);
+
+  let added = 0;
+  for (const label of rec.scoutBlockers) {
+    const key = keyOf(label);
+    if (!key) continue;
+    const hit = book.needsYou.find(e => e.key === key);
+    if (hit) {
+      if (!hit.employers.includes(rec.company)) {
+        hit.employers.push(rec.company);
+        hit.postings += postings;
+      }
+      continue;
+    }
+    book.needsYou.push({
+      key, question: label, kind: 'text', required: true, options: [],
+      employers: [rec.company], postings, answer: null, seenBlocking: true
+    });
+    added++;
+  }
+  if (added) {
+    try { fs.writeFileSync(BOOK_PATH, JSON.stringify(book, null, 1)); } catch {}
+  }
+}
 
 async function tick() {
   const settings = store.getSettings();
@@ -180,6 +220,30 @@ async function applyOne(id, settings = store.getSettings()) {
     rec.scoutReason = result.blocked || result.error || 'could not complete the form';
     rec.scoutBlockers = (result.skipped || []).filter(s => s.critical).map(s => s.label);
     log(`  blocked  ${rec.company} — ${rec.title.slice(0, 40)}  (${rec.scoutReason})`);
+
+    // An employer asks the same questions on every posting it runs. Retrying
+    // the other forty one at a time, five minutes apart, is how a day gets
+    // spent entirely inside IMC — and every one of them fails on the same
+    // unanswerable SAT score. The verdict is about the employer, so apply it
+    // to the employer, and record what it wants so answering once brings all
+    // of them back.
+    if (rec.scoutBlockers.length) {
+      const siblings = Object.values(apps).filter(o =>
+        o.companyId === rec.companyId && o.id !== rec.id && o.status === 'queued');
+      for (const o of siblings) {
+        tracker.applyStatus(o, 'scouted', { reason: rec.scoutReason });
+        o.scoutReason = rec.scoutReason;
+        o.scoutBlockers = rec.scoutBlockers;
+        o.blockedWithSibling = rec.id;
+        apps[o.id] = o;
+      }
+      recordBlockers(rec, siblings.length + 1);
+      if (siblings.length) {
+        log(`           ${siblings.length} more ${rec.company} posting` +
+            `${siblings.length === 1 ? '' : 's'} held on the same questions` +
+            ` — answer them with: node tools/answer.js`);
+      }
+    }
   }
 
   apps[id] = rec;
