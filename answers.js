@@ -111,7 +111,7 @@ const ANSWER_RULES = [
     from: 'salaryExpectation' },
   { id: 'noticePeriod', re: /notice\s*period|pr[ée]avis/i, from: 'noticePeriod' },
   { id: 'priorApplication', re: /previously\s*(?:applied|worked)|former\s*employee|d[ée]j[àa]\s*postul/i, from: 'previouslyApplied' },
-  { id: 'referral', re: /how\s*did\s*you\s*hear|referred\s*by|source|r[ée]f[ée]rence/i, from: 'referralSource' },
+  { id: 'referral', re: /how\s*did\s*you\s*(?:hear|learn|find|come\s*to\s*know)|how\s*(?:did|do)\s*you\s*(?:hear|learn)\s*about|referred\s*by|source|r[ée]f[ée]rence|where\s*did\s*you\s*(?:hear|find)/i, from: 'referralSource' },
 
 
   /* ── Common employer-specific questions ──
@@ -441,10 +441,14 @@ function answerFor(question, answers = {}, opts = {}) {
   // country where you are applying", "...may result in disqualification"),
   // and declaration order has no idea which mention is the question. The
   // longest match is the one that saw the most of what was actually asked.
+  // Forms mark required fields by appending an asterisk to the label, which
+  // silently breaks every anchored rule: /^title$/ never sees "Title*".
+  const qm = q.replace(/[\s*✱:]+$/, '').trim() || q;
+
   const candidates = [];
   let firstMiss = null;
   for (const rule of ANSWER_RULES) {
-    const m = q.match(rule.re);
+    const m = qm.match(rule.re) || q.match(rule.re);
     if (!m) continue;
     if (rule.not && rule.not.test(q)) continue;
     candidates.push([m[0].length, candidates.length, rule]);

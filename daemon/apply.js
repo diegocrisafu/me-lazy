@@ -56,6 +56,15 @@ async function surveyFields(page) {
         const l = node.querySelector('label, legend, [class*="label"]');
         if (l && !l.contains(el) && clean(l.textContent)) return clean(l.textContent);
       }
+      // Last resort: the text sitting immediately around the control.
+      // Belvedere names its inputs cards[uuid][field2] with no label element
+      // at all, but "State ✱" is right there in the enclosing block — which
+      // is how a person reads the form too.
+      node = el.parentElement;
+      for (let i = 0; i < 3 && node; i++, node = node.parentElement) {
+        const t = clean(node.innerText || '');
+        if (t && t.length < 120 && t !== clean(el.value)) return t;
+      }
       return clean(el.placeholder || el.name || '');
     }
 
