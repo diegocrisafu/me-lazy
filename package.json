@@ -11,7 +11,7 @@
     "start": "node daemon/index.js",
     "dashboard": "node daemon/server.js",
     "login": "node daemon/cli.js login",
-    "test": "node --test tests/",
+    "test": "node --test tests/*.test.js",
     "verify": "node tools/verify-sources.js"
   },
   "dependencies": {

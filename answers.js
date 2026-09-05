@@ -85,7 +85,7 @@ const ANSWER_RULES = [
   /* ── Education ── */
   { id: 'school',       re: /school|university|universit[ée]|college|institution|[ée]tablissement|currently\s*attend/i,
     not: /when|date|month|year|complete|graduat|scale|gpa|grade/i, from: 'school' },
-  { id: 'degree',       re: /degree|dipl[ôo]me|qualification/i, from: 'degree' },
+  { id: 'degree',       re: /degree|dipl[ôo]me|\bqualification/i, from: 'degree' },
   { id: 'fieldOfStudy', re: /field\s*of\s*study|major|discipline|domaine|programme?\s*of\s*study/i, from: 'fieldOfStudy' },
   { id: 'gpa',          re: /\bgpa\b|grade\s*point|moyenne|academic\s*average/i, from: 'gpa' },
   // Education date controls are usually split into month and year selects.
@@ -302,7 +302,11 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     // the level belongs here and the subject belongs in fieldOfStudy.
     degree: "Bachelor's Degree",
     fieldOfStudy: cvFacts.fieldOfStudy || 'Computer Science',
-    gpa: cvFacts.gpa || '3.0',
+    // Deliberately no fallback. A GPA is a checkable number that firms
+    // screen on, so an invented one is either a false claim or a needlessly
+    // weak one. Blank blocks the handful of forms that ask, which surfaces
+    // it as a question rather than guessing on your behalf.
+    gpa: cvFacts.gpa || profile.gpa || '',
     // Graduation menus phrase this every possible way: a month and year, a
     // bare year, or a bracket like "Prior to December 2026". Offer all three
     // shapes so whichever the form uses, one of them scores a match.
@@ -422,10 +426,22 @@ function answerFor(question, answers = {}, opts = {}) {
     return { status: 'exact', ruleId: 'book', value: String(booked), fromBook: true };
   }
 
+  // Every rule that fits, then the most specific one — not the first one
+  // declared. A long question mentions many things incidentally ("...the
+  // country where you are applying", "...may result in disqualification"),
+  // and declaration order has no idea which mention is the question. The
+  // longest match is the one that saw the most of what was actually asked.
+  const candidates = [];
+  let firstMiss = null;
   for (const rule of ANSWER_RULES) {
-    if (!rule.re.test(q)) continue;
+    const m = q.match(rule.re);
+    if (!m) continue;
     if (rule.not && rule.not.test(q)) continue;
+    candidates.push([m[0].length, candidates.length, rule]);
+  }
+  candidates.sort((a, b) => (b[0] - a[0]) || (a[1] - b[1]));
 
+  for (const [, , rule] of candidates) {
     if (rule.demographic) {
       // Never a substantive answer — only the decline option, in the several
       // phrasings forms use for it.
@@ -450,10 +466,17 @@ function answerFor(question, answers = {}, opts = {}) {
     const value = answers[rule.from];
     if (value === undefined || value === null || value === '' ||
         (Array.isArray(value) && !value.length)) {
-      return { status: 'unknown', ruleId: rule.id, critical: Boolean(rule.critical),
-               reason: rule.critical
-                 ? 'no saved answer, and this question decides auto-rejection'
-                 : 'no saved answer' };
+      // A critical question stops here — guessing at work authorisation from
+      // some weaker rule that also matched is exactly how an application gets
+      // auto-rejected. Anything else falls through to the next-best reading,
+      // keeping this one as the answer only if nothing better resolves.
+      const miss = { status: 'unknown', ruleId: rule.id, critical: Boolean(rule.critical),
+                     reason: rule.critical
+                       ? 'no saved answer, and this question decides auto-rejection'
+                       : 'no saved answer' };
+      if (rule.critical) return miss;
+      if (!firstMiss) firstMiss = miss;
+      continue;
     }
     return { status: 'exact', ruleId: rule.id,
              value: Array.isArray(value) ? value[0] : String(value),
@@ -462,7 +485,7 @@ function answerFor(question, answers = {}, opts = {}) {
   }
 
   // Yes/no questions we have not seen before are still unsafe to guess.
-  return { status: 'unknown', reason: 'question not recognised' };
+  return firstMiss || { status: 'unknown', reason: 'question not recognised' };
 }
 
 /** Which stored answers are still blank — surfaced in the popup. */

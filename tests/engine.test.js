@@ -397,7 +397,7 @@ const answers = require('../answers.js');
 test('identity and education questions resolve exactly', () => {
   const a = answers.defaultAnswers({ firstName: 'Diego', lastName: 'Crisafulli', email: 'd@x.com' });
   assert.equal(answers.answerFor('First Name', a).value, 'Diego');
-  assert.equal(answers.answerFor('What is your GPA?', a).value, '3.0');
+  assert.equal(answers.answerFor('What is your GPA?', a).status, 'unknown');
   assert.equal(answers.answerFor('Email address', a).value, 'd@x.com');
 });
 
@@ -550,4 +550,27 @@ test('a variant with no uploaded PDF blocks auto-apply', () => {
     {}, { missingCritical: [] });
   assert.equal(a.canAuto, false);
   assert.match(a.reason, /not uploaded/);
+});
+
+test('a long question is answered on what it asks, not what it mentions', () => {
+  const ans = answers.defaultAnswers({ firstName: 'Diego' }, {}, { region: 'US' });
+
+  // "...Privacy Policy applicable to the country where you are applying"
+  // mentions a country. It is not asking for one.
+  const policy = answers.answerFor(
+    'Please review and acknowledge the specific Robinhood Applicant Privacy ' +
+    'Policy applicable to the country where you are applying.*', ans);
+  assert.equal(policy.status, 'consent');
+
+  // "disqualification" contains "qualification". It is not asking for a degree.
+  const worked = answers.answerFor(
+    'Have you ever worked for Robinhood as an employee, intern or contractor? ' +
+    'Note that providing false or misleading information may result in ' +
+    'disqualification from the hiring process.*', ans);
+  assert.equal(worked.ruleId, 'previouslyWorkedHere');
+  assert.equal(worked.value, 'No');
+
+  // The plain forms of both still resolve the way they always did.
+  assert.equal(answers.answerFor('What country do you live in?', ans).ruleId, 'country');
+  assert.equal(answers.answerFor('What is your highest degree?', ans).ruleId, 'degree');
 });
