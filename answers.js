@@ -211,6 +211,66 @@ const ANSWER_RULES = [
 const MONTHS = ['January','February','March','April','May','June',
                 'July','August','September','October','November','December'];
 
+
+/* ═══════════════════════════════════════════
+   ANSWER BOOK
+
+   Harvested questions with answers given once
+   and reused verbatim. This is consulted before
+   any rule or inference, because an answer you
+   supplied is always better than one derived:
+   no algorithm can produce a SAT score, whether
+   you hold competing offers, or whether you have
+   used a company's product.
+
+   Employers reuse their question set across all
+   their postings, so answering IMC's five
+   questions unlocks every IMC role.
+   ═══════════════════════════════════════════ */
+
+let _book = null;
+
+/** Normalised so wording noise does not create misses. */
+function bookKey(question) {
+  return String(question).toLowerCase()
+    .replace(/[✱*]+/g, ' ')
+    .replace(/[^a-z0-9\s?]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 120);
+}
+
+/** Load once; the daemon is long-lived and the file rarely changes. */
+function loadBook(dir) {
+  if (_book) return _book;
+  _book = {};
+  try {
+    // Only available under Node; the browser build simply has no book.
+    const fs = require('fs');
+    const path = require('path');
+    const p = path.join(dir || __dirname, 'data', 'answer-book.json');
+    const raw = JSON.parse(fs.readFileSync(p, 'utf8'));
+    for (const e of raw.needsYou || []) {
+      if (e.answer !== null && e.answer !== undefined && e.answer !== '') {
+        _book[e.key] = e.answer;
+      }
+    }
+    for (const [k, v] of Object.entries(raw.answered || {})) _book[k] = v;
+  } catch { /* no book yet */ }
+  return _book;
+}
+
+function bookLookup(question, dir) {
+  const b = loadBook(dir);
+  const k = bookKey(question);
+  if (b[k] !== undefined) return b[k];
+  // A prefix match catches the same question truncated differently by a form.
+  for (const key of Object.keys(b)) {
+    if (key.length > 24 && (k.startsWith(key) || key.startsWith(k))) return b[key];
+  }
+  return undefined;
+}
+
 /** Defaults filled in from the CV facts, overridable in the popup. */
 /**
  * @param {object} profile
@@ -343,6 +403,12 @@ function answerFor(question, answers = {}, opts = {}) {
   const q = String(question || '').trim();
   if (!q) return { status: 'unknown', reason: 'no question text' };
 
+  // An answer you gave beats anything derived, including a terminal one.
+  const booked = bookLookup(q, opts.dir);
+  if (booked !== undefined) {
+    return { status: 'exact', ruleId: 'book', value: String(booked), fromBook: true };
+  }
+
   for (const rule of ANSWER_RULES) {
     if (!rule.re.test(q)) continue;
     if (rule.not && rule.not.test(q)) continue;
@@ -399,6 +465,7 @@ function missingCritical(answers = {}) {
   return missing;
 }
 
-const __answers = { ANSWER_RULES, defaultAnswers, answerFor, missingCritical };
+const __answers = { ANSWER_RULES, defaultAnswers, answerFor, missingCritical,
+                    bookKey, bookLookup, loadBook };
 if (typeof module !== 'undefined' && module.exports) module.exports = __answers;
 if (typeof self !== 'undefined') self.__answers = __answers;
