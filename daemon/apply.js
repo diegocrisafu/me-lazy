@@ -890,6 +890,27 @@ async function applyTo(ctxBrowser, record, opts = {}) {
 
     const files = await attachFiles(page, record, ctx);
 
+    // Uploading a résumé makes Greenhouse re-parse it into the form, and a
+    // parse that comes back empty overwrites what was already typed — which
+    // is how an application gets blocked on First Name. Anything required
+    // that the upload emptied is filled again here.
+    if (files && files.length) {
+      await page.waitForTimeout(1200);
+      const after = await surveyFields(page);
+      const controls2 = await page.$$('input, textarea, select');
+      const emptied = after.filter(f =>
+        f.required && !f.disabled && f.visible && !f.hasValue && !f.isProxy &&
+        !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes(f.type));
+
+      for (const info of emptied) {
+        if (Date.now() > deadline) break;
+        const handle = controls2[info.i];
+        if (!handle) continue;
+        const r = await fillField(page, handle, info, answers, ctx).catch(() => null);
+        if (r && !filled.some(f => f.label === r.label)) filled.push(r);
+      }
+    }
+
     // Required fields the form still considers empty. This is the check that
     // catches a filler which reported success but left the form blank.
     const empties = await page.evaluate(() => {

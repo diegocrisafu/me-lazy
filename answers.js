@@ -211,7 +211,11 @@ const ANSWER_RULES = [
   { id: 'veteran',    demographic: true, re: /veteran|militaire/i },
   { id: 'disability', demographic: true, re: /disab|handicap/i },
   { id: 'indigenous', demographic: true, re: /indigenous|aboriginal|autochtone|first\s*nations/i },
-  { id: 'lgbtq',      demographic: true, re: /lgbt|sexual\s*orientation|orientation\s*sexuelle/i }
+  { id: 'lgbtq',      demographic: true, re: /lgbt|sexual\s*orientation|orientation\s*sexuelle/i },
+  // "I identify as:" is how several forms head the whole self-identification
+  // block without naming what they are asking about. It is never anything but
+  // demographic, and declining is the same answer either way.
+  { id: 'selfIdentify', demographic: true, re: /\bi\s*identify\s*as\b|self[-\s]?identif|voluntary\s*self[-\s]?disclosure|transgender|pronouns?\b/i }
 ];
 
 const MONTHS = ['January','February','March','April','May','June',

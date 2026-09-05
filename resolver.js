@@ -310,6 +310,52 @@ function matchConcept(ruleId, value, options = []) {
   return hits.length === 1 ? hits[0] : -1;
 }
 
+
+/* ── Ranked preferences ──
+   "1st choice: Area of interest" then "2nd choice", each offering the same
+   list. The ordering comes from where the CV is actually strongest, so the
+   first choice is the one the résumé best supports — and the second is a
+   real second rather than a repeat, which some forms reject outright. */
+
+const AREA_RANK = [
+  /backend|back[-\s]?end|infrastructure|platform|systems?\b|distributed|core\s*eng/i,
+  /full[-\s]?stack/i,
+  /data|machine\s*learning|\bml\b|\bai\b|analytics/i,
+  /product\s*eng|application/i,
+  /open\s*to\s*any|no\s*preference|any\s*area|flexible/i,
+  /security|reliability|\bsre\b|devops/i,
+  /front[-\s]?end|mobile|ios|android|design/i
+];
+
+/** 0 for "1st choice", 1 for "2nd", null when the question is not ranked. */
+function ordinal(question) {
+  const q = String(question).toLowerCase();
+  const m = q.match(/\b([1-5])(?:st|nd|rd|th)\b|\b(first|second|third|fourth)\b/);
+  if (!m) return null;
+  if (m[1]) return Number(m[1]) - 1;
+  return ['first', 'second', 'third', 'fourth'].indexOf(m[2]);
+}
+
+/**
+ * Pick the nth-best engineering area from the options offered.
+ * @returns {string|null}
+ */
+function matchPreference(question, options = []) {
+  const n = ordinal(question);
+  if (n === null) return null;
+  if (!/area|interest|type\s*of\s*(engineering|work)|team|discipline|track|specialis|specializ/i
+        .test(String(question))) return null;
+
+  const ranked = options
+    .map(o => ({ o, r: AREA_RANK.findIndex(re => re.test(o)) }))
+    .filter(x => x.r >= 0)
+    .sort((a, b) => a.r - b.r);
+
+  // Needs to look like an area list, not a coincidence.
+  if (ranked.length < Math.max(2, Math.ceil(options.length / 2))) return null;
+  return ranked[n] ? ranked[n].o : ranked[ranked.length - 1].o;
+}
+
 /**
  * Decide an answer for a question no rule recognised.
  *
@@ -338,6 +384,10 @@ function resolve(question, options = [], answers = {}) {
     const match = usable.find(o => (p.value === 'Yes' ? YES : NO).test(o));
     return match ? { value: match, why: p.why, confidence: 'high' } : null;
   }
+
+  // A ranked preference — "1st choice", then "2nd choice" from the same list.
+  const pref = matchPreference(q, usable);
+  if (pref) return { value: pref, why: 'ranked by CV strength', confidence: 'high' };
 
   // The options can identify a question the words did not. Cloudflare's
   // "when would you be available to start" says nothing recognisable, but it
@@ -387,6 +437,6 @@ function resolve(question, options = [], answers = {}) {
   return null;
 }
 
-const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, matchConcept, monthIndex, quantity, interval, facts };
+const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, matchConcept, matchPreference, ordinal, monthIndex, quantity, interval, facts };
 if (typeof module !== 'undefined' && module.exports) module.exports = __resolver;
 if (typeof self !== 'undefined') self.__resolver = __resolver;

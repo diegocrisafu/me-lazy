@@ -669,3 +669,24 @@ test('options identify a question the words do not', () => {
     { region: 'US', returnToSchool: false });
   assert.match(resolver.resolve(q, opts, done).value, /^Immediately/);
 });
+
+test('a ranked preference gives a real second choice, ordered by CV strength', () => {
+  const resolver = require('../resolver.js');
+  const a = answers.defaultAnswers({}, {}, { region: 'US' });
+
+  const cf = ['Backend/Systems', 'Full-stack', 'Frontend'];
+  assert.equal(resolver.resolve('1st choice: Area of interest in Software Engineering', cf, a).value,
+               'Backend/Systems');
+  assert.equal(resolver.resolve('2nd choice (optional): Area of interest in Software Engineering', cf, a).value,
+               'Full-stack');
+
+  // The second pick is a genuine second, not a repeat — some forms reject that.
+  const fig = ['Product Engineering', 'Backend/Infrastructure', 'Security Engineering', 'Open to any area'];
+  const first = resolver.resolve('Which type of engineering work excites you most? Select your first choice.', fig, a).value;
+  const second = resolver.resolve('Which type of engineering work excites you most? Select your second choice.', fig, a).value;
+  assert.equal(first, 'Backend/Infrastructure');
+  assert.notEqual(second, first);
+
+  // An ordinal on something that is not an area list is left alone.
+  assert.equal(resolver.matchPreference('What is your favourite colour?', ['Red', 'Blue']), null);
+});
