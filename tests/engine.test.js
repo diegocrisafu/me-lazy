@@ -690,3 +690,21 @@ test('a ranked preference gives a real second choice, ordered by CV strength', (
   // An ordinal on something that is not an area list is left alone.
   assert.equal(resolver.matchPreference('What is your favourite colour?', ['Red', 'Blue']), null);
 });
+
+test('a skill scale is answered from the CV, never above it', () => {
+  const resolver = require('../resolver.js');
+  const a = answers.defaultAnswers({}, {}, { region: 'US' });
+  const scale = ['None', 'Beginner', 'Intermediate', 'Advanced', 'Expert'];
+
+  // On the CV's skills line: the middle of the scale.
+  assert.equal(resolver.matchScale('How familiar are you with Python?', scale, a), 'Intermediate');
+  assert.equal(resolver.matchScale('My experience with C++ is as follows:', scale, a), 'Intermediate');
+
+  // Not on it: the weakest positive rung. Never advanced or expert, which
+  // the CV could not support.
+  const docker = resolver.matchScale('My experience with Docker is as follows:', scale, a);
+  assert.equal(docker, 'Beginner');
+
+  // A list that is not a scale is left alone.
+  assert.equal(resolver.matchScale('My experience with Docker is as follows:', ['Yes', 'No'], a), null);
+});

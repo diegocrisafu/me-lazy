@@ -356,6 +356,61 @@ function matchPreference(question, options = []) {
   return ranked[n] ? ranked[n].o : ranked[ranked.length - 1].o;
 }
 
+
+/* ── Self-assessed skill levels ──
+   "My experience with Docker is as follows:", "How familiar are you with
+   Kubernetes?" — an ordinal scale, and the honest answer depends on whether
+   the skill is on the CV. Claiming expert in something the résumé never
+   mentions is the kind of thing that comes apart in the first interview. */
+
+const SCALE_ORDER = [
+  /\bnone\b|no\s*experience|never\s*used|not\s*familiar|unfamiliar|\b0\b/i,
+  /beginner|basic|novice|limited|minimal|some\s*exposure|aware\s*of|heard\s*of/i,
+  /intermediate|working\s*knowledge|comfortable|moderate|proficient|used\s*(?:it\s*)?in/i,
+  /advanced|strong|extensive|deep|highly\s*proficient/i,
+  /expert|mastery|authority|contributed\s*to\s*the\s*project/i
+];
+
+/** The subject of a skill question, if it names one. */
+function skillSubject(question) {
+  const q = String(question);
+  const m = q.match(/(?:experience|exposure|familiar(?:ity)?|proficien\w*|comfort\w*|knowledge)\s*(?:with|in|of|using)\s+([A-Za-z0-9+#./ -]{2,40})/i)
+         || q.match(/^\s*(?:my\s+)?([A-Za-z0-9+#./-]{2,24})\s+(?:experience|exposure|proficiency)/i)
+         || q.match(/how\s+(?:familiar|experienced|comfortable)\s+(?:are\s+you\s+)?(?:with|in)\s+([A-Za-z0-9+#./ -]{2,40})/i);
+  if (!m) return null;
+  return m[1].replace(/\b(is|are|as|follows|the|a|an)\b/gi, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Where on an ordinal scale a skill honestly sits.
+ * @returns {string|null}
+ */
+function matchScale(question, options = [], answers = {}) {
+  const subject = skillSubject(question);
+  if (!subject) return null;
+
+  const levels = options
+    .map(o => ({ o, r: SCALE_ORDER.findIndex(re => re.test(o)) }))
+    .filter(x => x.r >= 0)
+    .sort((a, b) => a.r - b.r);
+  // Needs to be a scale, not a list that happens to contain "basic".
+  if (levels.length < Math.max(3, Math.ceil(options.length * 0.6))) return null;
+
+  const known = String(answers.programmingLanguages || '') + ' ' +
+                String(answers.skills || '') + ' ' + String(answers.tools || '');
+  const head = subject.split(/[\s,/]+/)[0].toLowerCase();
+  const onCv = head.length > 1 &&
+    new RegExp(head.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(known);
+
+  // On the CV: the middle of the scale, which is what a student's exposure
+  // honestly is. Not on it: the weakest positive rung, not "none" — the
+  // skills line lists languages, not every tool touched across four
+  // internships, so "no experience with Docker" is likely false and costs a
+  // screen. Anything above beginner would be a claim the CV cannot support.
+  const want = onCv ? Math.min(2, levels.length - 1) : Math.min(1, levels.length - 1);
+  return levels[want] ? levels[want].o : null;
+}
+
 /**
  * Decide an answer for a question no rule recognised.
  *
@@ -384,6 +439,10 @@ function resolve(question, options = [], answers = {}) {
     const match = usable.find(o => (p.value === 'Yes' ? YES : NO).test(o));
     return match ? { value: match, why: p.why, confidence: 'high' } : null;
   }
+
+  // A self-assessed skill level, answered from what the CV actually shows.
+  const scale = matchScale(q, usable, answers);
+  if (scale) return { value: scale, why: 'skill level from the CV', confidence: 'medium' };
 
   // A ranked preference — "1st choice", then "2nd choice" from the same list.
   const pref = matchPreference(q, usable);
@@ -437,6 +496,6 @@ function resolve(question, options = [], answers = {}) {
   return null;
 }
 
-const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, matchConcept, matchPreference, ordinal, monthIndex, quantity, interval, facts };
+const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, matchConcept, matchPreference, matchScale, skillSubject, ordinal, monthIndex, quantity, interval, facts };
 if (typeof module !== 'undefined' && module.exports) module.exports = __resolver;
 if (typeof self !== 'undefined') self.__resolver = __resolver;

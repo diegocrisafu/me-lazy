@@ -150,7 +150,7 @@ const ANSWER_RULES = [
     from: 'readyFullTime' },
   { id: 'department', re: /which\s*(?:department|team|desk|group|area)|most\s*interested\s*in|preferred\s*(?:team|department)/i,
     from: 'preferredDepartment' },
-  { id: 'militaryService', re: /served\s*in\s*the\s*military|military\s*service|armed\s*forces/i,
+  { id: 'militaryService', re: /served\s*in\s*the\s*military|military\s*(?:service|status|experience)|armed\s*forces|protected\s*veteran/i,
     from: 'militaryService' },
   { id: 'currentEmployer', re: /current\s*(?:employer|company)|present\s*employer|company\s*name|employer\s*name|most\s*recent\s*(?:employer|company)/i,
     from: 'currentEmployer' },
@@ -191,12 +191,12 @@ const ANSWER_RULES = [
 
   /* ── Free text ── */
   { id: 'whyCompany', longform: true,
-    re: /why\s*(?:do\s*you\s*want\s*to\s*)?(?:work|join)|why\s*(?:this\s*)?(?:company|us|role)|what\s*(?:interests|excites)|why\s*are\s*you\s*interested|what\s*(?:draws|attracts)\s*you|why\s*(?:would\s*you\s*)?(?:like|want)\s*to/i },
+    re: /why\s*(?:do\s*you\s*want\s*to\s*)?(?:work|join)|why\s*(?:this\s*)?(?:company|us|role)|what\s*(?:interests|excites)|why\s*are\s*you\s*interested|what\s*(?:draws|attracts)\s*you|why\s*(?:would\s*you\s*)?(?:like|want)\s*to|^\s*why\s+(?!do|did|does|are|is|was|were|would|should|have|has|you|we|the|this|that|not|now|leave|leaving)[a-z][\w&.'-]{1,24}(?:\s+[a-z][\w&.'-]{1,24})?\s*\??\s*\*?\s*$/i },
   { id: 'coverLetter', longform: true,
     re: /cover\s*letter|lettre\s*de\s*motivation|additional\s*information|anything\s*else/i },
   { id: 'strengths', longform: true,
     not: /race|ethnic|gender|orientation|disab|veteran|demographic/i,
-    re: /greatest\s*strength|tell\s*us\s*about\s*yourself|describe\s*yourself/i },
+    re: /greatest\s*strength|tell\s*us\s*about\s*yourself|describe\s*yourself|why\s*(?:do\s*you\s*think\s*)?(?:are\s*)?you[^?]{0,30}\b(?:good\s*fit|right\s*fit|a\s*fit|right\s*(?:person|candidate))\b|what\s*makes\s*you[^?]{0,40}(?:candidate|fit)/i },
   { id: 'project', longform: true,
     re: /(?:favourite|favorite|interesting|challenging|recent|significant)\b[^?]{0,30}\bproject\b|describe\s*(?:a|your)[^?]{0,40}\bproject\b|proud\s*of|technical\s*challenge/i },
 
@@ -211,6 +211,8 @@ const ANSWER_RULES = [
   { id: 'veteran',    demographic: true, re: /veteran|militaire/i },
   { id: 'disability', demographic: true, re: /disab|handicap/i },
   { id: 'indigenous', demographic: true, re: /indigenous|aboriginal|autochtone|first\s*nations/i },
+  { id: 'policyConsent', consent: true,
+    re: /\b(?:ai|privacy|applicant|candidate|recruitment|data)\s*(?:use\s*)?policy\b|policy\s*for\s*application|terms\s*(?:and|&)\s*conditions|code\s*of\s*conduct/i },
   { id: 'lgbtq',      demographic: true, re: /lgbt|sexual\s*orientation|orientation\s*sexuelle/i },
   // "I identify as:" is how several forms head the whole self-identification
   // block without naming what they are asking about. It is never anything but
