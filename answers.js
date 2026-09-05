@@ -66,11 +66,11 @@ const ANSWER_RULES = [
   /* ── Identity ── */
   { id: 'firstName',  re: /first\s*name|given\s*name|pr[ée]nom/i, from: 'firstName' },
   { id: 'lastName',   re: /last\s*name|family\s*name|surname|nom\s*de\s*famille/i, from: 'lastName' },
-  { id: 'fullName',   re: /full\s*(?:legal\s*)?name|legal\s*name|your\s*name|nom\s*complet/i, from: 'fullName' },
+  { id: 'fullName',   re: /full\s*(?:legal\s*)?name|legal\s*name|your\s*name|nom\s*complet|^name$/i, from: 'fullName' },
   { id: 'email',      re: /e-?mail|courriel/i, not: /confirm/i, from: 'email' },
   { id: 'phone',      re: /phone|mobile|cell|t[ée]l[ée]phone/i, from: 'phone' },
   { id: 'address',    re: /street|address|adresse/i, not: /e-?mail/i, from: 'address' },
-  { id: 'city',       re: /\bcity\b|\bville\b/i, from: 'city' },
+  { id: 'city',       re: /\bcity\b|\bville\b|where\s*are\s*you\s*(?:currently\s*)?(?:located|based|living)|current\s*location|where\s*do\s*you\s*live/i, from: 'city' },
   // \bstate\b, not /state/ — otherwise "United States" matches here and the
   // work-authorisation question gets answered with a province.
   { id: 'province',   re: /\bprovince\b|\bstate\b|\br[ée]gion\b/i, not: /united\s*states|work/i, from: 'province' },
@@ -107,7 +107,7 @@ const ANSWER_RULES = [
   { id: 'startDate',  re: /when\s*(?:can|could)\s*you\s*start|available\s*to\s*start|availability|disponibilit[ée]|earliest\s*start/i,
     not: /month|year|education|school|degree/i, from: 'startDate' },
   { id: 'salary', critical: true,
-    re: /salary\s*expectation|expected\s*(?:salary|compensation|pay)|desired\s*(?:salary|pay)|pr[ée]tentions/i,
+    re: /salary\s*expectation|expected\s*(?:salary|compensation|pay)|desired\s*(?:salary|pay|compensation)|pr[ée]tentions|what\s*(?:annual\s*)?salary|annual\s*salary|compensation\s*expectation|base\s*salary\s*(?:expectation|requirement)|what.{0,24}(?:salary|compensation).{0,40}(?:expect|looking|seeking|excited)/i,
     from: 'salaryExpectation' },
   { id: 'noticePeriod', re: /notice\s*period|pr[ée]avis/i, from: 'noticePeriod' },
   { id: 'priorApplication', re: /previously\s*(?:applied|worked)|former\s*employee|d[ée]j[àa]\s*postul/i, from: 'previouslyApplied' },

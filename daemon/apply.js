@@ -753,6 +753,29 @@ async function attachFiles(page, record, ctx) {
     }
   }
 
+  // Some forms carry two file inputs: an optional "autofill from resume"
+  // slot and the required one. Uploading to the first makes the page
+  // re-render and parse, which loses the handle to the second — so the
+  // résumé lands in the convenience slot and the real one stays empty.
+  // Re-query and fill anything required that is still without a file.
+  if (haveCV) {
+    const again = await page.$$('input[type="file"]').catch(() => []);
+    for (const input of again) {
+      const need = await input.evaluate(el =>
+        (el.required || el.getAttribute('aria-required') === 'true') &&
+        !(el.files && el.files.length)).catch(() => false);
+      if (!need) continue;
+      await input.setInputFiles(cvPath, { timeout: 5000 }).catch(() => {});
+      await input.evaluate(el => {
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+      }).catch(() => {});
+      await page.waitForTimeout(2000);
+      const got = await input.evaluate(el => el.files?.length ? el.files[0].name : '').catch(() => '');
+      if (got) out.resume = out.resume || got;
+    }
+  }
+
   if (!out.resume && haveCV) ctx.skipped.push({ label: 'resume', reason: 'no file input matched' });
   if (!haveCV) ctx.skipped.push({ label: 'resume', reason: `CV not on disk: ${record.cvFile}`, critical: true });
   return out;
