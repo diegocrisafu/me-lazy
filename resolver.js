@@ -117,6 +117,20 @@ function scoreOption(text, f) {
   return best;
 }
 
+
+/* Some forms replace Yes and No with whole sentences — "I have never worked
+   at Robinhood" against four ways of saying you have. The question still has
+   a polarity; it is the options that stopped being literal. */
+const OPT_NEGATIVE = /\b(never|none of the (above|these)|no longer|neither|not (currently|previously|applicable)|do not|does not|have not|haven't|i am not|no,)/i;
+const OPT_POSITIVE = /\b(i (currently|previously|have|am|was|do)|yes,|i confirm|i acknowledge)/i;
+
+function optionPolarity(text) {
+  const t = String(text);
+  if (OPT_NEGATIVE.test(t)) return 'No';
+  if (OPT_POSITIVE.test(t)) return 'Yes';
+  return null;
+}
+
 /**
  * Decide an answer for a question no rule recognised.
  *
@@ -146,6 +160,20 @@ function resolve(question, options = [], answers = {}) {
     return match ? { value: match, why: p.why, confidence: 'high' } : null;
   }
 
+  // Sentence options with a question that still has a clear polarity. Only
+  // decided when exactly one option carries the polarity we want — with four
+  // ways of saying yes and one of saying no, "no" is unambiguous and "yes"
+  // is not, and a coin flip here is a false statement about your history.
+  if (usable.length > 1) {
+    const p = polarity(q, answers);
+    if (p) {
+      const matching = usable.filter(o => optionPolarity(o) === p.value);
+      if (matching.length === 1) {
+        return { value: matching[0], why: p.why, confidence: 'high' };
+      }
+    }
+  }
+
   // An option list: let the profile pick.
   if (usable.length) {
     const scored = usable.map(o => ({ o, s: scoreOption(o, f) })).sort((a, b) => b.s - a.s);
@@ -163,6 +191,6 @@ function resolve(question, options = [], answers = {}) {
   return null;
 }
 
-const __resolver = { resolve, polarity, scoreOption, facts };
+const __resolver = { resolve, polarity, optionPolarity, scoreOption, facts };
 if (typeof module !== 'undefined' && module.exports) module.exports = __resolver;
 if (typeof self !== 'undefined') self.__resolver = __resolver;

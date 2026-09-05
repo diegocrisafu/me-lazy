@@ -574,3 +574,28 @@ test('a long question is answered on what it asks, not what it mentions', () => 
   assert.equal(answers.answerFor('What country do you live in?', ans).ruleId, 'country');
   assert.equal(answers.answerFor('What is your highest degree?', ans).ruleId, 'degree');
 });
+
+test('sentence options are resolved by polarity, and only when unambiguous', () => {
+  const resolver = require('../resolver.js');
+  const a = answers.defaultAnswers({ firstName: 'Diego' }, {}, { region: 'US' });
+
+  // Robinhood asks "have you ever worked here" and offers five sentences
+  // instead of Yes and No. Exactly one of them is a no.
+  const opts = [
+    'I currently work at Robinhood as a full-time employee or intern',
+    'I have previously worked at Robinhood as a full-time employee or intern (Hoodie Alumni)',
+    'I currently work at Robinhood in a contractor role',
+    'I have previously worked at Robinhood in a contractor role',
+    'I have never worked at Robinhood'
+  ];
+  const r = resolver.resolve(
+    'Have you ever worked for Robinhood as an employee, intern or contractor?', opts, a);
+  assert.equal(r.value, 'I have never worked at Robinhood');
+
+  // Two options carrying the wanted polarity is a coin flip, so it stays
+  // unanswered rather than making a false claim about history.
+  const amb = resolver.resolve('Have you ever worked at Acme?',
+    ['I have never worked at Acme', 'I have not worked at Acme in five years',
+     'I currently work at Acme', 'I previously worked at Acme'], a);
+  assert.equal(amb, null);
+});
