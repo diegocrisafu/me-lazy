@@ -463,6 +463,25 @@ async function fillCombobox(page, input, value) {
     if (s > bestScore) { bestScore = s; bestIdx = i; }
   }
 
+  // The answer may be a quantity and the options ranges — "2 weeks" is none
+  // of "< 1 Month", "1-2 Months", "2-3 Months" as text, but it is
+  // unambiguously the first one.
+  if (bestIdx < 0 || bestScore < 40) {
+    const ranged = RESOLVER.matchRange(want, texts);
+    if (ranged >= 0) {
+      await clickOptionAt(page, ranged);
+      await page.waitForTimeout(220);
+      return readComboValue(page, input);
+    }
+    // Or a date against buckets — "2026-09" against June/December of each year.
+    const dated = RESOLVER.matchDate(want, texts);
+    if (dated >= 0) {
+      await clickOptionAt(page, dated);
+      await page.waitForTimeout(220);
+      return readComboValue(page, input);
+    }
+  }
+
   // Below this the menu does not contain the answer; guessing at an
   // unrelated option is worse than leaving it for a human.
   if (bestIdx < 0 || bestScore < 40) {

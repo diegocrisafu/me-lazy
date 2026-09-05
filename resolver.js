@@ -131,6 +131,142 @@ function optionPolarity(text) {
   return null;
 }
 
+
+/* ── Answers that are quantities, options that are ranges ──
+   "2 weeks" is not any of "< 1 Month", "1-2 Months", "2-3 Months",
+   "> 3 Months" as text, but it is unambiguously the first one. The same
+   shape turns up for years of experience and salary bands. */
+
+const UNIT_MONTHS = { day: 1 / 30, week: 1 / 4.345, month: 1, year: 12 };
+
+const WORD_NUMBERS = { zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5,
+                       six: 6, seven: 7, eight: 8, nine: 9, ten: 10, twelve: 12 };
+
+/** A quantity, with its unit if it named one. */
+function quantity(text) {
+  const t = String(text).toLowerCase().trim();
+  if (/^(none|n\/a|immediate|immediately|asap|no notice|nil)\b/.test(t)) return { n: 0, unit: null };
+
+  const unit = (t.match(/\b(day|week|month|year)s?\b/) || [])[1] || null;
+  let n = null;
+  const digits = t.match(/(\d+(?:\.\d+)?)/);
+  if (digits) n = parseFloat(digits[1]);
+  else {
+    const w = Object.keys(WORD_NUMBERS).find(k => new RegExp('\\b' + k + '\\b').test(t));
+    if (w) n = WORD_NUMBERS[w];
+  }
+  if (n === null || !Number.isFinite(n)) return null;
+  return { n, unit };
+}
+
+/** An option read as a numeric interval. `scaleTo` converts named units to
+    months; without it the numbers are compared as written, which is what a
+    unit-less answer like "2" against "2-4 years" needs. */
+function interval(text, scaleTo = true) {
+  const t = String(text).toLowerCase().trim();
+  if (/^(none|immediate|immediately|asap|no notice|nil)\b/.test(t)) return [0, 0];
+
+  const unit = (t.match(/\b(day|week|month|year)s?\b/) || [])[1];
+  const scale = (scaleTo && unit) ? UNIT_MONTHS[unit] : 1;
+  const nums = (t.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+  if (!nums.length) return null;
+
+  if (/^[<≤]|less than|under|fewer than|up to|below/.test(t)) return [-Infinity, nums[0] * scale];
+  if (/^[>≥]|more than|over|greater than|at least|\+\s*$|\d\s*\+/.test(t)) return [nums[0] * scale, Infinity];
+  if (nums.length >= 2) return [nums[0] * scale, nums[1] * scale];
+  return [nums[0] * scale, nums[0] * scale];
+}
+
+/**
+ * Which offered option contains the wanted quantity.
+ * @returns {number} index, or -1 when the options are not ranges
+ */
+function matchRange(want, options = []) {
+  const q = quantity(want);
+  if (!q) return -1;
+
+  // An answer that named its unit is converted to months, and so are the
+  // options. An answer that did not ("2" against "2-4 years") is compared in
+  // whatever unit the options are written in — converting one side only is
+  // how "2" lands in "0-1 years".
+  const scaleTo = Boolean(q.unit);
+  const n = scaleTo ? q.n * UNIT_MONTHS[q.unit] : q.n;
+  const ivs = options.map(o => interval(o, scaleTo));
+  // At least half the options must parse as intervals, or this is not a
+  // range list and a numeric reading would be a coincidence.
+  if (ivs.filter(Boolean).length < Math.max(2, Math.ceil(options.length / 2))) return -1;
+
+  for (let i = 0; i < ivs.length; i++) {
+    if (ivs[i] && n >= ivs[i][0] && n <= ivs[i][1]) return i;
+  }
+  return -1;
+}
+
+
+/* ── Answers that are dates, options that are buckets ──
+   Cloudflare asks when you graduate and offers June/December of each year.
+   A September graduation is not in the list; the honest pick is the first
+   bucket that is not before it, because the earlier one would claim a
+   degree you do not yet have. */
+
+const MONTHS = ['january', 'february', 'march', 'april', 'may', 'june', 'july',
+                'august', 'september', 'october', 'november', 'december'];
+
+/** Months since year zero, or null. */
+function monthIndex(text) {
+  const t = String(text).toLowerCase();
+  const year = (t.match(/\b(19|20)\d{2}\b/) || [])[0];
+  if (!year) return null;
+
+  let mon = MONTHS.findIndex(m => t.includes(m.slice(0, 3)) && t.includes(m.slice(0, 4)));
+  if (mon < 0) mon = MONTHS.findIndex(m => new RegExp('\\b' + m.slice(0, 3)).test(t));
+  // Seasons, which employers use as often as months.
+  if (mon < 0) {
+    if (/\bspring\b/.test(t)) mon = 3;
+    else if (/\bsummer\b/.test(t)) mon = 5;
+    else if (/\bfall|autumn\b/.test(t)) mon = 8;
+    else if (/\bwinter\b/.test(t)) mon = 11;
+  }
+  // An ISO date, which is how the profile stores it.
+  const iso = t.match(/\b(19|20)(\d{2})-(\d{2})\b/);
+  if (iso) return Number(year) * 12 + (Number(iso[3]) - 1);
+
+  return Number(year) * 12 + (mon < 0 ? 0 : mon);
+}
+
+/**
+ * Which offered date bucket to pick for a target date.
+ * @returns {number} index, or -1 when the options are not dates
+ */
+function matchDate(want, options = []) {
+  const target = monthIndex(want);
+  if (target === null) return -1;
+
+  const idx = options.map(monthIndex);
+  if (idx.filter(v => v !== null).length < Math.max(2, Math.ceil(options.length / 2))) return -1;
+
+  const exact = idx.findIndex(v => v === target);
+  if (exact >= 0) return exact;
+
+  // The earliest bucket at or after the target — never claim an earlier
+  // completion than the real one.
+  let best = -1, bestGap = Infinity;
+  for (let i = 0; i < idx.length; i++) {
+    if (idx[i] === null || idx[i] < target) continue;
+    const gap = idx[i] - target;
+    if (gap < bestGap) { bestGap = gap; best = i; }
+  }
+  if (best >= 0) return best;
+
+  // Everything offered is in the past — take the latest, which is the
+  // closest true statement available.
+  let latest = -1, latestVal = -Infinity;
+  for (let i = 0; i < idx.length; i++) {
+    if (idx[i] !== null && idx[i] > latestVal) { latestVal = idx[i]; latest = i; }
+  }
+  return latest;
+}
+
 /**
  * Decide an answer for a question no rule recognised.
  *
@@ -191,6 +327,6 @@ function resolve(question, options = [], answers = {}) {
   return null;
 }
 
-const __resolver = { resolve, polarity, optionPolarity, scoreOption, facts };
+const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, monthIndex, quantity, interval, facts };
 if (typeof module !== 'undefined' && module.exports) module.exports = __resolver;
 if (typeof self !== 'undefined') self.__resolver = __resolver;

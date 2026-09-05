@@ -134,7 +134,11 @@ const ANSWER_RULES = [
     from: 'testScore' },
   { id: 'gradingScale', re: /grading\s*scale|gpa\s*scale|out\s*of\s*(?:what|how\s*much)|scale\s*used/i,
     from: 'gradingScale' },
-  { id: 'furtherEducation', re: /further\s*education|pursu\w*\s*(?:a\s*)?(?:master|graduate|phd|additional)|continue\s*(?:your\s*)?education|postgraduate/i,
+  // "Will you return to school after the internship" is the same question as
+  // "are you pursuing further education", asked the way employers who run
+  // internship programmes ask it — and it is the one Cloudflare, Amazon and
+  // most co-op programmes gate eligibility on.
+  { id: 'furtherEducation', re: /further\s*education|pursu\w*\s*(?:a\s*)?(?:master|graduate|phd|additional)|continue\s*(?:your\s*)?education|postgraduate|(?:return|returning|go\s*back)\s*to\s*(?:the\s*)?(?:school|university|program\w*|studies)(?:[^.?]{0,60})?|enrolled\s*in\s*a\s*(?:university|program)[^.?]{0,80}return/i,
     from: 'furtherEducation' },
   { id: 'offersDetail', re: /if\s*(?:you\s*)?answered\s*.?yes.?[^?]{0,60}(?:offer|detail)|provide\s*details?\s*on\s*competing|details?\s*(?:about|on)\s*(?:your\s*)?offers?/i,
     from: 'outstandingOffersDetail' },

@@ -599,3 +599,54 @@ test('sentence options are resolved by polarity, and only when unambiguous', () 
      'I currently work at Acme', 'I previously worked at Acme'], a);
   assert.equal(amb, null);
 });
+
+test('a quantity answer finds the range option that contains it', () => {
+  const resolver = require('../resolver.js');
+
+  // Man Group offers notice period as buckets, not as a number of weeks.
+  const notice = ['< 1 Month', '1-2 Months', '2-3 Months', '> 3 Months'];
+  assert.equal(notice[resolver.matchRange('2 weeks', notice)], '< 1 Month');
+  assert.equal(notice[resolver.matchRange('Two weeks', notice)], '< 1 Month');
+  assert.equal(notice[resolver.matchRange('6 weeks', notice)], '1-2 Months');
+
+  // A unit-less answer is read in the options' own unit. Converting one side
+  // only is how "2" lands in "0-1 years".
+  const years = ['0-1 years', '2-4 years', '5+ years'];
+  assert.equal(years[resolver.matchRange('2', years)], '2-4 years');
+  assert.equal(years[resolver.matchRange('7', years)], '5+ years');
+
+  // A list that is not ranges is left alone.
+  assert.equal(resolver.matchRange('2 weeks', ['Yes', 'No', 'Maybe']), -1);
+});
+
+test('a graduation date picks the bucket that does not claim an earlier degree', () => {
+  const resolver = require('../resolver.js');
+  const o = ['Before 2025', 'June 2025', 'December 2025', 'June 2026',
+             'December 2026', 'June 2027', 'N/A'];
+
+  // September 2026 is not offered. June 2026 would claim a degree three
+  // months before it exists, so the pick is December 2026.
+  assert.equal(o[resolver.matchDate('2026-09', o)], 'December 2026');
+  assert.equal(o[resolver.matchDate('June 2026', o)], 'June 2026');
+
+  // Employers use seasons as often as months.
+  const seasons = ['Fall 2026', 'Winter 2027', 'Spring 2027'];
+  assert.equal(seasons[resolver.matchDate('2026-09', seasons)], 'Fall 2026');
+
+  assert.equal(resolver.matchDate('2026-09', ['Yes', 'No']), -1);
+});
+
+test('returning to school after an internship is the further-education question', () => {
+  const back = answers.defaultAnswers({}, { gradDate: '2026-09' },
+    { region: 'US', returnToSchool: true });
+  const notBack = answers.defaultAnswers({}, { gradDate: '2026-09' },
+    { region: 'US', returnToSchool: false });
+  const q = 'Are you currently enrolled in a university or program and will ' +
+            'return to the program upon completion of internship?*';
+
+  assert.equal(answers.answerFor(q, back).value, 'Yes');
+  assert.equal(answers.answerFor(q, notBack).value, 'No');
+  // It must not be read as "which university do you attend".
+  assert.equal(answers.answerFor(q, back).ruleId, 'furtherEducation');
+  assert.equal(answers.answerFor('Which university do you attend?', back).ruleId, 'school');
+});
