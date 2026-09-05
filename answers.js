@@ -47,6 +47,9 @@ const ANSWER_RULES = [
     re: /security\s*clearance|habilitation\s*de\s*s[ée]curit[ée]/i,
     from: 'securityClearance' },
 
+  { id: 'citizenshipCountry', critical: true,
+    re: /(?:which\s*)?country\/?(?:region)?\s*(?:do\s*you\s*have\s*)?citizenship|country\s*of\s*citizenship|citizenship\s*country/i,
+    from: 'citizenshipCountry' },
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
 /* ── Location and logistics the blocked list surfaced ── */
@@ -134,6 +137,10 @@ const ANSWER_RULES = [
     from: 'furtherEducation' },
   { id: 'outstandingOffers', re: /outstanding\s*offer|other\s*offers|competing\s*offer|holding\s*any\s*offer/i,
     from: 'outstandingOffers' },
+  { id: 'internTerm', re: /winter\s*or\s*summer|prefer\s*a\s*(?:winter|summer|fall)\s*intern|which\s*(?:intern(?:ship)?\s*)?(?:term|season)/i,
+    from: 'graduationTerm' },
+  { id: 'readyFullTime', re: /ready\s*for\s*full[\s-]?time\s*employment|available\s*for\s*full[\s-]?time/i,
+    from: 'readyFullTime' },
   { id: 'department', re: /which\s*(?:department|team|desk|group|area)|most\s*interested\s*in|preferred\s*(?:team|department)/i,
     from: 'preferredDepartment' },
   { id: 'militaryService', re: /served\s*in\s*the\s*military|military\s*service|armed\s*forces/i,
@@ -156,7 +163,8 @@ const ANSWER_RULES = [
   { id: 'singleRoleAck',
     re: /reviewed\s*for\s*one\s*position|apply\s*to\s*your\s*top\s*choice|one\s*position\s*at\s*a\s*time/i,
     from: 'acknowledge' },
-  { id: 'noticePeriodQ', re: /notice\s*period|when\s*could\s*you\s*(?:join|begin)/i, from: 'noticePeriod' },
+  { id: 'noticePeriodQ', re: /notice\s*period|when\s*could\s*you\s*(?:join|begin)|availability\s*to\s*start/i,
+    from: 'noticePeriod' },
   { id: 'programmingLanguages', re: /programming\s*languages?|which\s*languages?\s*(?:do\s*you|are\s*you)|preferred\s*language/i,
     from: 'programmingLanguages' },
   { id: 'yearsExperience', re: /years?\s*of\s*(?:relevant\s*)?experience|how\s*many\s*years/i,
@@ -307,13 +315,18 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     acknowledge: profile.acknowledge || ['Yes', 'I acknowledge', 'I understand', 'I agree'],
     programmingLanguages: profile.programmingLanguages || 'Python, C++, Java, JavaScript',
     yearsExperience: profile.yearsExperience || '2',
-    graduationTerm: profile.graduationTerm || ['Summer', 'Summer 2027', 'Any'],
+    graduationTerm: profile.graduationTerm ||
+      ['Summer', 'Summer 2027', 'Winter', 'Either', 'No preference', 'Any'],
     preferredLocation: profile.preferredLocation ||
       ['Montreal', 'Toronto', 'Remote', 'New York', 'Any'],
 
     universityLocation: profile.universityLocation ||
       ['Montreal', 'Canada', 'Quebec', 'Montreal, Canada'],
     canProvideDocs: profile.canProvideDocs || 'Yes',
+    // The country, not the status — "which country/region do you have
+    // citizenship in" wants Canada, not "Canadian citizen".
+    citizenshipCountry: profile.citizenshipCountry || ['Canada', 'CA', 'Canadian'],
+    readyFullTime: profile.readyFullTime || 'Yes',
     referralSource: profile.referralSource ||
       ['Company Website', 'Company Site', 'Job Board', 'LinkedIn', 'Website', 'Other'],
 

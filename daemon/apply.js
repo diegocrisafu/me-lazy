@@ -19,6 +19,7 @@
 const path = require('path');
 const fs = require('fs');
 const ANSWERS = require('../answers.js');
+const RESOLVER = require('../resolver.js');
 const store = require('./store.js');
 
 const CV_DIR = path.join(__dirname, '..', 'cv');
@@ -133,7 +134,12 @@ async function fillField(page, handle, info, answers, ctx) {
   if (r.status === 'exact') {
     if (info.tag === 'select') {
       const picked = await selectOption(handle, r.value);
-      return picked ? { field: r.ruleId, label, value: r.value, kind: 'select' } : null;
+      if (picked) return { field: r.ruleId, label, value: r.value, kind: 'select' };
+      if (!r.critical) {
+        const guess = await resolveUnknown(page, handle, info, label, answers, ctx);
+        if (guess) return guess;
+      }
+      return null;
     }
     if (info.type === 'radio' || info.type === 'checkbox') {
       return await setChoice(page, handle, label, r.value)
@@ -147,6 +153,14 @@ async function fillField(page, handle, info, answers, ctx) {
         if (rendered) break;
       }
       if (!rendered) {
+        // A rule matched but its value is not among the options — the school
+        // rule firing on "are you a University of Waterloo student" and trying
+        // to answer with a university name into a yes/no menu. The question is
+        // still answerable; it just needs reading rather than recognising.
+        if (!r.critical) {
+          const guess = await resolveUnknown(page, handle, info, label, answers, ctx);
+          if (guess) return guess;
+        }
         ctx.skipped.push({ label,
           reason: 'no option matched "' + r.value + '"',
           critical: !!r.critical, kind: 'dropdown' });
@@ -221,6 +235,10 @@ async function fillField(page, handle, info, answers, ctx) {
     return null;
   }
 
+  if (!r.critical) {
+    const guess = await resolveUnknown(page, handle, info, label, answers, ctx);
+    if (guess) return guess;
+  }
   ctx.skipped.push({ label, reason: r.reason || 'no saved answer', critical: !!r.critical });
   return null;
 }
@@ -240,6 +258,52 @@ async function selectOption(handle, value) {
   await handle.selectOption({ value: match.value }).catch(() => {});
   return true;
 }
+
+/** Answer a control the rule bank could not, by reading what it offers.
+    Every employer invents its own questions, so recognising them one by one
+    cannot keep pace; reading the options generalises. Terminal questions are
+    never routed here — a wrong work-authorisation answer ends the
+    application, so those stay with the answer bank. */
+async function resolveUnknown(page, handle, info, label, answers, ctx) {
+  if (info.tag !== 'select' && !info.isCombo &&
+      !['radio', 'checkbox'].includes(info.type)) {
+    const r = RESOLVER.resolve(label, [], answers);
+    if (!r || r.confidence !== 'high') return null;
+    await handle.fill(String(r.value), { timeout: 3000 }).catch(() => {});
+    const got = await handle.inputValue().catch(() => '');
+    return got ? { field: 'resolved', label, value: got, kind: 'resolved' } : null;
+  }
+
+  if (info.tag === 'select') {
+    const opts = await handle.evaluate(el =>
+      Array.from(el.options || []).map(o => (o.textContent || '').trim())).catch(() => []);
+    const r = RESOLVER.resolve(label, opts, answers);
+    if (!r) return null;
+    return (await selectOption(handle, r.value))
+      ? { field: 'resolved', label, value: r.value, kind: 'resolved' } : null;
+  }
+
+  if (info.isCombo) {
+    await handle.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {});
+    if (!await handle.click({ timeout: 3000 }).then(() => true).catch(() => false)) return null;
+    await page.waitForTimeout(400);
+
+    const n = await countOptions(page);
+    if (!n || n > 60) { await page.keyboard.press('Escape').catch(() => {}); return null; }
+
+    const texts = await readOptionTexts(page, 60);
+    const r = RESOLVER.resolve(label, texts, answers);
+    const idx = r ? texts.findIndex(t => t === r.value) : -1;
+    if (idx < 0) { await page.keyboard.press('Escape').catch(() => {}); return null; }
+
+    await clickOptionAt(page, idx);
+    await page.waitForTimeout(250);
+    const rendered = await readComboValue(page, handle);
+    return rendered ? { field: 'resolved', label, value: rendered, kind: 'resolved' } : null;
+  }
+  return null;
+}
+
 
 /* ─────────── react-select comboboxes ───────────
    Greenhouse, Ashby and Lever render dropdowns as a div plus a text input
@@ -501,6 +565,10 @@ async function fillChoiceGroups(page, answers, ctx) {
         if (optionScore(o.text, candidate) >= 40) { picked = o; break; }
       }
       if (picked) break;
+    }
+    if (!picked) {
+      const guess = RESOLVER.resolve(g.question, g.options.map(o => o.text), answers);
+      if (guess) picked = g.options.find(o => o.text === guess.value) || null;
     }
     if (!picked) {
       if (g.required) ctx.skipped.push({ label: g.question,
