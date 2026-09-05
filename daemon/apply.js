@@ -20,6 +20,7 @@ const path = require('path');
 const fs = require('fs');
 const ANSWERS = require('../answers.js');
 const RESOLVER = require('../resolver.js');
+const LONGFORM = require('../longform.js');
 const store = require('./store.js');
 
 const CV_DIR = path.join(__dirname, '..', 'cv');
@@ -207,17 +208,31 @@ async function fillField(page, handle, info, answers, ctx) {
   }
 
   if (r.status === 'longform') {
-    const letter = ctx.coverLetter;
-    const roomy = info.tag === 'textarea' || info.maxLength <= 0 || info.maxLength > 400;
-    if (letter && roomy) {
-      const text = info.maxLength > 0 && info.maxLength < letter.length
-        ? letter.slice(0, info.maxLength) : letter;
-      await handle.fill(text);
-      return { field: r.ruleId, label, value: '[cover letter]' };
+    const roomy = info.tag === 'textarea' || info.maxLength <= 0 || info.maxLength > 200;
+    if (!roomy) {
+      ctx.skipped.push({ label, reason: 'free text, but the field is too small' });
+      return null;
     }
-    ctx.skipped.push({ label, reason: 'needs written prose' });
-    return null;
+
+    // A cover-letter box gets the letter; every other prose question gets a
+    // composed answer. Leaving these blank was the worst outcome — the
+    // application still goes in, just visibly emptier than the next one.
+    const limit = info.maxLength > 0 ? info.maxLength : 0;
+    const text = (r.longformKind === 'coverLetter' && ctx.coverLetter)
+      ? (limit && ctx.coverLetter.length > limit ? ctx.coverLetter.slice(0, limit) : ctx.coverLetter)
+      : LONGFORM.compose(r.longformKind, ctx.job || {}, { cover: ctx.coverLetter, limit });
+
+    if (!text) {
+      ctx.skipped.push({ label, reason: 'free text, no composed answer for this kind' });
+      return null;
+    }
+    await handle.fill(text, { timeout: 4000 }).catch(() => {});
+    const got = await handle.inputValue().catch(() => '');
+    return got
+      ? { field: r.ruleId, label, value: '[' + r.longformKind + ' · ' + got.length + ' chars]', kind: 'prose' }
+      : null;
   }
+
 
   if (r.status === 'demographic') {
     // Select the decline option where the form offers one. Anything else is
@@ -786,11 +801,13 @@ async function findSubmit(page) {
 async function applyTo(ctxBrowser, record, opts = {}) {
   const settings = opts.settings || store.getSettings();
   const answers = ANSWERS.defaultAnswers(settings.profile || {}, opts.cvFacts || {},
-                                         { region: record.region });
+                                         { region: record.region,
+                                           returnToSchool: record.returnToSchool === true });
   const dryRun = Boolean(opts.dryRun);
 
   const dir = store.artifactDir(record);
   const ctx = {
+    job: record,
     skipped: [],
     coverLetter: opts.coverLetter || null,
     coverLetterFile: null

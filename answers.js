@@ -136,7 +136,9 @@ const ANSWER_RULES = [
     from: 'gradingScale' },
   { id: 'furtherEducation', re: /further\s*education|pursu\w*\s*(?:a\s*)?(?:master|graduate|phd|additional)|continue\s*(?:your\s*)?education|postgraduate/i,
     from: 'furtherEducation' },
-  { id: 'outstandingOffers', re: /outstanding\s*offer|other\s*offers|competing\s*offer|holding\s*any\s*offer/i,
+  { id: 'offersDetail', re: /if\s*(?:you\s*)?answered\s*.?yes.?[^?]{0,60}(?:offer|detail)|provide\s*details?\s*on\s*competing|details?\s*(?:about|on)\s*(?:your\s*)?offers?/i,
+    from: 'outstandingOffersDetail' },
+  { id: 'outstandingOffers', re: /outstanding\s*offer|other\s*offers?|competing\s*offer|holding\s*any\s*offer|have\s*any\s*offers?|currently\s*have\s*(?:any\s*)?offers?|any\s*(?:active\s*)?offers?\b/i,
     from: 'outstandingOffers' },
   { id: 'internTerm', re: /winter\s*or\s*summer|prefer\s*a\s*(?:winter|summer|fall)\s*intern|which\s*(?:intern(?:ship)?\s*)?(?:term|season)/i,
     from: 'graduationTerm' },
@@ -341,13 +343,15 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
 
     relocate: profile.relocate || 'Yes',
     onsite: profile.onsite || 'Yes',
-    startDate: profile.startDate || 'Immediately',
+    startDate: profile.startDate || 'January 2027',
     salaryExpectation: profile.salaryExpectation || '',
-    noticePeriod: profile.noticePeriod || 'None',
+    // On contract with McKesson through December 2026.
+    noticePeriod: profile.noticePeriod || ['2 weeks', 'Two weeks', 'None'],
     previouslyApplied: profile.previouslyApplied || 'No',
     // Menus offer wildly different vocabularies here. A list is tried in
     // order, so one of them matches whatever this form happens to call it.
-    gradingScale: profile.gradingScale || '4.0',
+    // Concordia grades on a 4.30 scale, not 4.0.
+    gradingScale: profile.gradingScale || ['4.3', '4.30', '4.0'],
     // Canadian universities do not require SAT/ACT, so there is usually no
     // score to give. Offer the ways forms phrase "none".
     testScoreType: profile.testScoreType ||
@@ -356,11 +360,20 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     // Bachelor's start year minus four is the usual high-school finish.
     // Year menus want a bare year; prose fields want the full date. Offer
     // both so whichever the form uses, one of them matches.
-    highSchoolGradYear: profile.highSchoolGradYear || ['2020', '2021', '2019'],
+    highSchoolGradYear: profile.highSchoolGradYear || ['2020', 'June 2020', '2020-06'],
     educationLevel: profile.educationLevel ||
       ["Bachelor's Degree", 'Bachelors', "Bachelor's", 'Undergraduate', 'BS', 'University'],
-    furtherEducation: profile.furtherEducation || 'No',
-    outstandingOffers: profile.outstandingOffers || 'No',
+    // Only true for internships that require returning to school afterwards —
+    // the same condition that governs the McGill claim on the Big Tech CV.
+    // Answering Yes on a full-time role would say you are leaving to study.
+    furtherEducation: (ctx.returnToSchool === true ? 'Yes' : 'No'),
+    // You do hold a McKesson offer. This answers Yes: it is a checkable fact,
+    // a false No is the kind of thing that unravels late, and a competing
+    // offer usually reads as demand rather than as a reason to pass.
+    outstandingOffers: profile.outstandingOffers || 'Yes',
+    outstandingOffersDetail: profile.outstandingOffersDetail ||
+      'I hold a return offer from McKesson, where I am currently on contract ' +
+      'through December 2026. This role is my first preference.',
     preferredDepartment: profile.preferredDepartment ||
       ['Software Engineering', 'Software Development', 'Engineering', 'Technology',
        'Core Development', 'Software', 'Development', 'Quantitative Development',
