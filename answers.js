@@ -39,6 +39,10 @@ const ANSWER_RULES = [
     re: /authorized\s*to\s*work|authorised\s*to\s*work|work\s*authorization|right\s*to\s*work|legally\s*entitled/i,
     not: /sponsor|visa/i, from: 'workAuthCanada' },
 
+  { id: 'citizenshipCountry', critical: true,
+    re: /(?:which\s*)?country\/?(?:region)?\s*(?:do\s*you\s*have\s*)?citizenship|country\s*of\s*citizenship|citizenship\s*country/i,
+    from: 'citizenshipCountry' },
+
   { id: 'citizenship', critical: true,
     re: /citizen|permanent\s*resident|citoyen|r[ée]sident\s*permanent/i,
     not: /sponsor/i, from: 'citizenship' },
@@ -47,9 +51,6 @@ const ANSWER_RULES = [
     re: /security\s*clearance|habilitation\s*de\s*s[ée]curit[ée]/i,
     from: 'securityClearance' },
 
-  { id: 'citizenshipCountry', critical: true,
-    re: /(?:which\s*)?country\/?(?:region)?\s*(?:do\s*you\s*have\s*)?citizenship|country\s*of\s*citizenship|citizenship\s*country/i,
-    from: 'citizenshipCountry' },
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
 /* ── Location and logistics the blocked list surfaced ── */
