@@ -266,14 +266,53 @@ function searchKey(value) {
   return first || v.slice(0, 12);
 }
 
-async function readOptions(page) {
-  const els = await page.$$('.select__option, [class*="select__option"], [role="option"]');
-  const out = [];
-  for (const el of els) {
-    const t = (await el.textContent().catch(() => '') || '').replace(/\s+/g, ' ').trim();
-    if (t) out.push({ el, text: t });
+/* Menu-option selectors in priority order. They must not be combined into
+   one comma-selector: the phone-number field keeps 246 country entries with
+   role="option" in the DOM at all times, so a combined query returns those
+   first and a limit truncates the real menu away entirely. Take the first
+   selector that matches and stop. */
+const OPTION_SELECTORS = [
+  '.select__menu .select__option',
+  '.select__option',
+  '[class*="select__option"]',
+  '[role="listbox"]:not([hidden]) [role="option"]',
+  '[role="option"]'
+];
+
+async function optionSelector(page) {
+  for (const sel of OPTION_SELECTORS) {
+    const n = await page.$$eval(sel, els => els.length).catch(() => 0);
+    if (n > 0) return { sel, n };
   }
-  return out;
+  return { sel: null, n: 0 };
+}
+
+/** How many options the open menu has, without reading any of them. */
+async function countOptions(page) {
+  return (await optionSelector(page)).n;
+}
+
+/** Option texts in one round-trip.
+    Reading textContent per element cost a round-trip each, and a school or
+    city menu carries several hundred entries — that alone was minutes per
+    form, which is what exhausted the fill budget. */
+async function readOptionTexts(page, limit = 400) {
+  const { sel } = await optionSelector(page);
+  if (!sel) return [];
+  return page.$$eval(sel,
+    (els, lim) => els.slice(0, lim).map(e => (e.textContent || '').replace(/\s+/g, ' ').trim()),
+    limit).catch(() => []);
+}
+
+/** Click the nth option without holding a handle to every sibling. */
+async function clickOptionAt(page, index) {
+  const { sel } = await optionSelector(page);
+  if (!sel) return false;
+  const els = await page.$$(sel);
+  const el = els[index];
+  if (!el) return false;
+  await el.click({ timeout: 3000 }).catch(() => {});
+  return true;
 }
 
 
@@ -281,14 +320,16 @@ async function readOptions(page) {
 async function pickSoleAffirmative(page, input) {
   await input.click({ timeout: 3000 }).catch(() => {});
   await page.waitForTimeout(400);
-  const options = await readOptions(page);
-  const usable = options.filter(o => !/^(select|choose|--|none)/i.test(o.text));
-  // Only safe when there is no ambiguity: one option, or a clear yes/no pair.
-  let pick = null;
-  if (usable.length === 1) pick = usable[0];
-  else pick = usable.find(o => /^(yes|i\s|accept|agree|acknowledg)/i.test(o.text));
+  const texts = await readOptionTexts(page, 40);
+  const usable = texts
+    .map((t, i) => ({ t, i }))
+    .filter(o => o.t && !/^(select|choose|--|none)/i.test(o.t));
+
+  // Only safe without ambiguity: one option, or a clear affirmative.
+  let pick = usable.length === 1 ? usable[0]
+           : usable.find(o => /^(yes|i\s|accept|agree|acknowledg)/i.test(o.t));
   if (!pick) { await page.keyboard.press('Escape').catch(() => {}); return ''; }
-  await pick.el.click({ timeout: 3000 }).catch(() => {});
+  await clickOptionAt(page, pick.i);
   await page.waitForTimeout(300);
   return readComboValue(page, input);
 }
@@ -302,39 +343,44 @@ async function fillCombobox(page, input, value) {
   await input.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {});
   const opened = await input.click({ timeout: 3000 }).then(() => true).catch(() => false);
   if (!opened) return '';
-  await page.waitForTimeout(180);
 
-  // Open the menu first and look at what the form actually offers. Typing the
-  // full answer filters a curated list down to nothing — "Bachelor's, Computer
-  // Science" matches no option in a menu whose entry is "Bachelor's Degree".
-  let options = await readOptions(page);
+  // Wait for the menu to actually render rather than a fixed delay. The old
+  // per-option read was slow enough to mask this; once it was batched, the
+  // count raced the menu open and came back empty.
+  await page.waitForSelector(OPTION_SELECTORS[1], { timeout: 2500, state: 'attached' })
+    .catch(() => {});
 
-  // A long, search-driven menu (schools, cities) needs narrowing first.
-  if (options.length === 0 || options.length > 60) {
+  // Open the menu and see how big it is before reading anything. A school or
+  // city list runs to several hundred entries; narrowing first turns that
+  // into a handful.
+  let n = await countOptions(page);
+
+  if (n === 0 || n > 40) {
     await page.keyboard.type(searchKey(want), { delay: 8 });
-    await page.waitForTimeout(450);
-    options = await readOptions(page);
+    await page.waitForTimeout(400);
+    n = await countOptions(page);
   }
 
-  if (!options.length) {
+  if (!n) {
     await page.keyboard.press('Escape').catch(() => {});
     return '';
   }
 
-  let best = null, bestScore = 0;
-  for (const o of options) {
-    const s = optionScore(o.text, want);
-    if (s > bestScore) { bestScore = s; best = o; }
+  const texts = await readOptionTexts(page, 60);
+  let bestIdx = -1, bestScore = 0;
+  for (let i = 0; i < texts.length; i++) {
+    const s = optionScore(texts[i], want);
+    if (s > bestScore) { bestScore = s; bestIdx = i; }
   }
 
-  // Below this the menu simply does not contain the answer; guessing at an
+  // Below this the menu does not contain the answer; guessing at an
   // unrelated option is worse than leaving it for a human.
-  if (!best || bestScore < 40) {
+  if (bestIdx < 0 || bestScore < 40) {
     await page.keyboard.press('Escape').catch(() => {});
     return '';
   }
 
-  await best.el.click({ timeout: 3000 }).catch(() => {});
+  await clickOptionAt(page, bestIdx);
   await page.waitForTimeout(220);
   return readComboValue(page, input);
 }
