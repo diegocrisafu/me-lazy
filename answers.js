@@ -66,7 +66,7 @@ const ANSWER_RULES = [
   /* ── Identity ── */
   { id: 'firstName',  re: /first\s*name|given\s*name|pr[ée]nom/i, from: 'firstName' },
   { id: 'lastName',   re: /last\s*name|family\s*name|surname|nom\s*de\s*famille/i, from: 'lastName' },
-  { id: 'fullName',   re: /full\s*name|your\s*name|nom\s*complet/i, from: 'fullName' },
+  { id: 'fullName',   re: /full\s*(?:legal\s*)?name|legal\s*name|your\s*name|nom\s*complet/i, from: 'fullName' },
   { id: 'email',      re: /e-?mail|courriel/i, not: /confirm/i, from: 'email' },
   { id: 'phone',      re: /phone|mobile|cell|t[ée]l[ée]phone/i, from: 'phone' },
   { id: 'address',    re: /street|address|adresse/i, not: /e-?mail/i, from: 'address' },
@@ -191,7 +191,7 @@ const ANSWER_RULES = [
 
   /* ── Free text ── */
   { id: 'whyCompany', longform: true,
-    re: /why\s*(?:do\s*you\s*want\s*to\s*)?(?:work|join)|why\s*(?:this\s*)?(?:company|us|role)|what\s*(?:interests|excites)/i },
+    re: /why\s*(?:do\s*you\s*want\s*to\s*)?(?:work|join)|why\s*(?:this\s*)?(?:company|us|role)|what\s*(?:interests|excites)|why\s*are\s*you\s*interested|what\s*(?:draws|attracts)\s*you|why\s*(?:would\s*you\s*)?(?:like|want)\s*to/i },
   { id: 'coverLetter', longform: true,
     re: /cover\s*letter|lettre\s*de\s*motivation|additional\s*information|anything\s*else/i },
   { id: 'strengths', longform: true,
@@ -207,7 +207,7 @@ const ANSWER_RULES = [
      leaves the application unsubmittable. Declining is both honest and what
      the form is built to accept. ── */
   { id: 'gender',     demographic: true, re: /gender|genre|sex\b/i },
-  { id: 'race',       demographic: true, re: /race|ethnic|visible\s*minorit/i },
+  { id: 'race',       demographic: true, re: /race|ethnic|visible\s*minorit|hispanic|latino|latinx/i },
   { id: 'veteran',    demographic: true, re: /veteran|militaire/i },
   { id: 'disability', demographic: true, re: /disab|handicap/i },
   { id: 'indigenous', demographic: true, re: /indigenous|aboriginal|autochtone|first\s*nations/i },

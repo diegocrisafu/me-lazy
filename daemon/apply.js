@@ -60,7 +60,13 @@ async function surveyFields(page) {
     }
 
     const out = [];
+    // Stamp each control with its own index. Handles were being matched back
+    // by position in a second, separate query, so any re-render between the
+    // two — a React form settling, a résumé parse landing — shifted every
+    // index by one and the answers went into the wrong fields.
+    document.querySelectorAll('[data-acc-i]').forEach(el => el.removeAttribute('data-acc-i'));
     document.querySelectorAll('input, textarea, select').forEach((el, i) => {
+      el.setAttribute('data-acc-i', String(i));
       const cls = (el.className || '').toString();
       out.push({
         i,
@@ -540,6 +546,29 @@ async function setChoice(page, handle, label, value) {
 
 async function fillChoiceGroups(page, answers, ctx) {
   const groups = await page.evaluate(() => {
+    /* The label that belongs to this group, and only this group. Climbing
+       past the first ancestor that also holds other questions is how a
+       consent checkbox ends up labelled "First Name*". Duplicated in the two
+       page.evaluate bodies because each runs in its own page context. */
+    function groupLabel(first, els, clean) {
+      const mine = new Set(els);
+      let node = first.closest('fieldset, [class*="field"], [class*="question"], div');
+      for (let i = 0; i < 5 && node; i++, node = node.parentElement) {
+        const inputs = [...node.querySelectorAll('input, select, textarea')]
+          .filter(e => !['hidden', 'submit', 'button'].includes(e.type));
+        // The moment this container holds a control from another question,
+        // its labels stop being about us.
+        if (inputs.some(e => !mine.has(e))) break;
+        const l = node.querySelector('legend, label:not([for]), [class*="label"]');
+        if (l && !l.querySelector('input')) {
+          const t = clean(l.textContent);
+          if (t) return t;
+        }
+      }
+      // An unlabelled consent control still has its name to go on.
+      return (first.name || '').replace(/[_\[\]]+/g, ' ').trim();
+    }
+
     const byName = {};
     // Checkbox groups look like radio groups to a user but share a name with
     // a [] suffix. Greenhouse renders "pick your office" this way, and it is
@@ -553,15 +582,14 @@ async function fillChoiceGroups(page, answers, ctx) {
 
     return Object.entries(byName).map(([name, els]) => {
       const first = els[0];
-      // The question is the nearest heading-ish text above the group.
-      let question = '';
-      let node = first.closest('fieldset, [class*="field"], [class*="question"], div');
-      for (let i = 0; i < 5 && node && !question; i++, node = node.parentElement) {
-        const l = node.querySelector('legend, label:not([for]), [class*="label"]');
-        if (l && !l.querySelector('input')) question = clean(l.textContent);
-      }
-      // Fall back to the group name for unlabelled consent controls.
-      if (!question) question = name.replace(/[_\[\]]+/g, ' ').trim();
+      // The question is the nearest heading-ish text above the group — but
+      // only while the ancestor still belongs to this group alone. Walking
+      // past that point reaches a container holding the whole form, whose
+      // first label is whatever comes first on the page: a GDPR consent
+      // checkbox was inheriting the label "First Name*" that way, which is
+      // both a wrong question and a required box nobody ticked.
+      let question = groupLabel(first, els, clean);
+
       const options = els.map(el => {
         const own = el.closest('label');
         const forLab = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null;
@@ -862,7 +890,7 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     // after an earlier answer is set.
     for (let pass = 0; pass < 2; pass++) {
       const survey = await surveyFields(page);
-      const controls = await page.$$('input, textarea, select');
+      // Resolved by the stamp, not by position — see surveyFields.
 
       // Only reach into the page for controls that could actually take a
       // value. Skipping the rest here — rather than inside fillField after
@@ -874,7 +902,7 @@ async function applyTo(ctxBrowser, record, opts = {}) {
       for (const info of worth) {
         if (Date.now() > deadline) { ctx.skipped.push({ label: '(remaining fields)',
           reason: 'time budget exhausted', critical: true }); break; }
-        const handle = controls[info.i];
+        const handle = await page.$(`[data-acc-i="${info.i}"]`).catch(() => null);
         if (!handle) continue;
         const r = await fillField(page, handle, info, answers, ctx).catch(() => null);
         if (r && !filled.some(f => f.label === r.label)) filled.push(r);
@@ -897,14 +925,14 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     if (files && files.length) {
       await page.waitForTimeout(1200);
       const after = await surveyFields(page);
-      const controls2 = await page.$$('input, textarea, select');
+
       const emptied = after.filter(f =>
         f.required && !f.disabled && f.visible && !f.hasValue && !f.isProxy &&
         !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes(f.type));
 
       for (const info of emptied) {
         if (Date.now() > deadline) break;
-        const handle = controls2[info.i];
+        const handle = await page.$(`[data-acc-i="${info.i}"]`).catch(() => null);
         if (!handle) continue;
         const r = await fillField(page, handle, info, answers, ctx).catch(() => null);
         if (r && !filled.some(f => f.label === r.label)) filled.push(r);
@@ -914,6 +942,29 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     // Required fields the form still considers empty. This is the check that
     // catches a filler which reported success but left the form blank.
     const empties = await page.evaluate(() => {
+      /* The label that belongs to this group, and only this group. Climbing
+         past the first ancestor that also holds other questions is how a
+         consent checkbox ends up labelled "First Name*". Duplicated in the two
+         page.evaluate bodies because each runs in its own page context. */
+        function groupLabel(first, els, clean) {
+        const mine = new Set(els);
+        let node = first.closest('fieldset, [class*="field"], [class*="question"], div');
+        for (let i = 0; i < 5 && node; i++, node = node.parentElement) {
+          const inputs = [...node.querySelectorAll('input, select, textarea')]
+            .filter(e => !['hidden', 'submit', 'button'].includes(e.type));
+          // The moment this container holds a control from another question,
+          // its labels stop being about us.
+          if (inputs.some(e => !mine.has(e))) break;
+          const l = node.querySelector('legend, label:not([for]), [class*="label"]');
+          if (l && !l.querySelector('input')) {
+            const t = clean(l.textContent);
+            if (t) return t;
+          }
+        }
+        // An unlabelled consent control still has its name to go on.
+        return (first.name || '').replace(/[_\[\]]+/g, ' ').trim();
+      }
+
       const out = [];
       const clean = s => (s || '').replace(/\s+/g, ' ').trim();
 
@@ -927,11 +978,7 @@ async function applyTo(ctxBrowser, record, opts = {}) {
       });
       for (const [name, els] of Object.entries(groups)) {
         if (els.some(e => e.checked)) continue;
-        let q = '', node = els[0].closest('fieldset, [class*="field"], div');
-        for (let i = 0; i < 5 && node && !q; i++, node = node.parentElement) {
-          const l = node.querySelector('legend, label:not([for]), [class*="label"]');
-          if (l && !l.querySelector('input')) q = clean(l.textContent);
-        }
+        const q = groupLabel(els[0], els, clean);
         const req = els.some(e => e.required || e.getAttribute('aria-required') === 'true') || /\*/.test(q);
         if (req) out.push(q || name);
       }
@@ -957,8 +1004,18 @@ async function applyTo(ctxBrowser, record, opts = {}) {
           }
         }
         if (!el.value || !el.value.trim()) {
-          const lab = document.querySelector(`label[for="${el.id}"]`);
-          out.push((lab?.textContent || el.name || el.id || 'field').replace(/\s+/g, ' ').trim());
+          // CSS.escape matters: Belvedere names its inputs
+          // cards[uuid][field0], and an unescaped selector throws, which took
+          // the whole check down and reported a form with no empty fields.
+          const lab = el.id
+            ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)
+            : null;
+          const name = (lab?.textContent || el.name || el.id || 'field')
+            .replace(/\s+/g, ' ').trim();
+          // The id disambiguates two controls that share a label, which is
+          // the difference between "we did not fill it" and "we filled the
+          // other one".
+          out.push(el.id && lab ? `${name} [#${el.id}]` : name);
         }
       });
       return [...new Set(out)];
