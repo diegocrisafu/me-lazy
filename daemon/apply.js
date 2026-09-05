@@ -206,7 +206,18 @@ async function fillField(page, handle, info, answers, ctx) {
   }
 
   if (r.status === 'demographic') {
-    ctx.skipped.push({ label, reason: 'demographic — left blank deliberately' });
+    // Select the decline option where the form offers one. Anything else is
+    // left alone — a substantive demographic answer is never invented, but
+    // several forms mark these required, and declining is what they expect.
+    if (info.tag === 'select' || info.isCombo) {
+      for (const phrase of r.decline || []) {
+        const v = info.tag === 'select'
+          ? (await selectOption(handle, phrase) ? phrase : '')
+          : await fillCombobox(page, handle, phrase);
+        if (v) return { field: r.ruleId, label, value: v, kind: 'declined' };
+      }
+    }
+    ctx.skipped.push({ label, reason: 'demographic — no decline option offered' });
     return null;
   }
 

@@ -49,6 +49,16 @@ const ANSWER_RULES = [
 
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
+/* ── Location and logistics the blocked list surfaced ── */
+  { id: 'intendToWork', re: /from\s*where\s*do\s*you\s*intend\s*to\s*work|where\s*(?:will|do)\s*you\s*(?:intend\s*to\s*)?work|work\s*location\s*preference/i,
+    from: 'preferredLocation' },
+  { id: 'universityLocation', re: /location\s*of\s*your\s*(?:current\s*)?university|where\s*is\s*your\s*(?:university|school)/i,
+    from: 'universityLocation' },
+  { id: 'flexwork', re: /flexwork|days\s*a\s*week[^?]{0,40}office|hybrid\s*requirement|in[\s-]office\s*requirement/i,
+    from: 'onsite' },
+  { id: 'provideDocs', re: /documentation\s*reflecting|verify\s*(?:your\s*)?(?:education|employment)|background\s*check/i,
+    from: 'canProvideDocs' },
+
   /* ── Identity ── */
   { id: 'firstName',  re: /first\s*name|given\s*name|pr[ée]nom/i, from: 'firstName' },
   { id: 'lastName',   re: /last\s*name|family\s*name|surname|nom\s*de\s*famille/i, from: 'lastName' },
@@ -170,11 +180,17 @@ const ANSWER_RULES = [
   { id: 'coverLetter', longform: true,
     re: /cover\s*letter|lettre\s*de\s*motivation|additional\s*information|anything\s*else/i },
   { id: 'strengths', longform: true,
+    not: /race|ethnic|gender|orientation|disab|veteran|demographic/i,
     re: /greatest\s*strength|tell\s*us\s*about\s*yourself|describe\s*yourself/i },
   { id: 'project', longform: true,
     re: /(?:favourite|favorite|interesting|challenging|recent|significant)\b[^?]{0,30}\bproject\b|describe\s*(?:a|your)[^?]{0,40}\bproject\b|proud\s*of|technical\s*challenge/i },
 
-  /* ── Demographic: never answered automatically ── */
+
+  /* ── Demographic ──
+     These are never invented. But every one of these forms offers a decline
+     option, and several mark the question required — so refusing to touch it
+     leaves the application unsubmittable. Declining is both honest and what
+     the form is built to accept. ── */
   { id: 'gender',     demographic: true, re: /gender|genre|sex\b/i },
   { id: 'race',       demographic: true, re: /race|ethnic|visible\s*minorit/i },
   { id: 'veteran',    demographic: true, re: /veteran|militaire/i },
@@ -295,6 +311,9 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     preferredLocation: profile.preferredLocation ||
       ['Montreal', 'Toronto', 'Remote', 'New York', 'Any'],
 
+    universityLocation: profile.universityLocation ||
+      ['Montreal', 'Canada', 'Quebec', 'Montreal, Canada'],
+    canProvideDocs: profile.canProvideDocs || 'Yes',
     referralSource: profile.referralSource ||
       ['Company Website', 'Company Site', 'Job Board', 'LinkedIn', 'Website', 'Other'],
 
@@ -315,8 +334,14 @@ function answerFor(question, answers = {}, opts = {}) {
     if (rule.not && rule.not.test(q)) continue;
 
     if (rule.demographic) {
+      // Never a substantive answer — only the decline option, in the several
+      // phrasings forms use for it.
       return { status: 'demographic', ruleId: rule.id,
-               reason: 'demographic question — left for you' };
+               decline: ['Prefer not to say', 'Decline to self identify',
+                         'I don\'t wish to answer', 'Prefer not to disclose',
+                         'Decline to answer', 'I do not wish to answer',
+                         'Prefer not to specify', 'Do not wish to disclose'],
+               reason: 'demographic — declining, never answered substantively' };
     }
     if (rule.consent) {
       // Consent is not a fact to look up — the form cannot be submitted
