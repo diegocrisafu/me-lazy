@@ -42,9 +42,10 @@ function bulletsFor(role, tag, max) {
   return [...mine, ...rest].slice(0, max).map(b => b.text);
 }
 
-function render(tag, label, squeeze = 0) {
-  const skills = C.SKILLS[tag] || C.SKILLS.swe;
-  const summary = C.SUMMARIES[tag] || C.SUMMARIES.swe;
+function render(tag, label, squeeze = 0, over = {}) {
+  const skills = over.skills || C.SKILLS[tag] || C.SKILLS.swe;
+  const summary = over.summary || C.SUMMARIES[tag] || C.SUMMARIES.swe;
+  const rank = over.rankBullets || null;
 
   // The most recent roles carry the most bullets; older ones are compressed
   // so the page holds without dropping a job off it entirely. Squeeze steps
@@ -59,7 +60,9 @@ function render(tag, label, squeeze = 0) {
   const FONT = [9.4, 9.1, 8.9, 8.7][Math.min(squeeze, 3)];
 
   const jobs = C.EXPERIENCE.map((role, i) => {
-    const bs = bulletsFor(role, tag, budget[i] ?? 2);
+    let bs = bulletsFor(role, tag, budget[i] ?? 2);
+    // A posting-specific ranking floats the bullets that answer it.
+    if (rank) bs = rank(bs);
     if (!bs.length) return '';
     return `<section class="role">
       <div class="rowline">
@@ -137,7 +140,24 @@ ${C.EDUCATION.map(e => `<div class="edu rowline">
 </body></html>`;
 }
 
-(async () => {
+async function build(page, tag, label, outPath, over = {}) {
+  const htmlPath = outPath.replace(/\.pdf$/, '.html');
+  let pages = 0, squeeze = 0;
+  for (; squeeze < 4; squeeze++) {
+    fs.writeFileSync(htmlPath, render(tag, label, squeeze, over));
+    await page.goto('file://' + htmlPath, { waitUntil: 'load' });
+    await page.pdf({ path: outPath, format: 'Letter', printBackground: true,
+                     margin: { top: '0.45in', bottom: '0.45in', left: '0.5in', right: '0.5in' } });
+    pages = countPages(outPath);
+    if (pages === 1) break;
+  }
+  fs.unlinkSync(htmlPath);
+  return { pages, squeeze };
+}
+
+module.exports = { render, build, countPages, VARIANTS };
+
+if (require.main === module) (async () => {
   const only = process.argv[2];
   const picks = only ? { [only]: VARIANTS[only] } : VARIANTS;
   if (only && !VARIANTS[only]) {
@@ -149,24 +169,10 @@ ${C.EDUCATION.map(e => `<div class="edu rowline">
   const page = await ctx.newPage();
 
   for (const [tag, v] of Object.entries(picks)) {
-    const htmlPath = path.join(OUT, `.resume-${tag}.html`);
     const pdfPath = path.join(OUT, `Diego Crisafulli - ${v.label}.pdf`);
-
-    // Tighten until it genuinely fits, checking the PDF itself rather than
-    // estimating from the page height — the estimate said one page while
-    // Chromium was writing two.
-    let pages = 0, squeeze = 0;
-    for (; squeeze < 4; squeeze++) {
-      fs.writeFileSync(htmlPath, render(tag, v.label, squeeze));
-      await page.goto('file://' + htmlPath, { waitUntil: 'load' });
-      await page.pdf({ path: pdfPath, format: 'Letter', printBackground: true,
-                       margin: { top: '0.45in', bottom: '0.45in', left: '0.5in', right: '0.5in' } });
-      pages = countPages(pdfPath);
-      if (pages === 1) break;
-    }
+    const { pages, squeeze } = await build(page, tag, v.label, pdfPath);
     console.log(`  ${pages === 1 ? 'ok ' : pages + 'pp'}  ${path.basename(pdfPath)}` +
                 (squeeze ? `   (tightened ${squeeze}x)` : ''));
-    fs.unlinkSync(htmlPath);
   }
 
   await page.close();

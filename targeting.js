@@ -34,7 +34,14 @@ const LEVEL_PATTERNS = {
   senior: [
     /\bsenior\b/i, /\bsr\.?\s/i, /\bstaff\b/i, /\bprincipal\b/i, /\blead\b/i,
     /\bmanager\b/i, /\bdirector\b/i, /\bhead\s*of\b/i, /\bvp\b/i, /\bchief\b/i,
-    /\barchitect\b/i, /\bIII\b/, /\bIV\b/, /\bL[4-9]\b/i, /\bII\b/
+    /\barchitect\b/i, /\bIII\b/, /\bIV\b/, /\bL[4-9]\b/i
+  ],
+  // The stretch band. "Engineer II", "Engineer 2", "Intermediate" — one rung
+  // above new grad, which is where the title and the money start moving and
+  // which a five-internship record actually answers.
+  mid: [
+    /\bII\b/, /\b2\b(?!\d)/, /\bL[23]\b/i, /\bintermediate\b/i,
+    /\bmid[-\s]?level\b/i, /\bassociate\s+(?:software|developer|engineer)/i
   ]
 };
 
@@ -43,12 +50,28 @@ function classifyLevel(title = '', description = '') {
   for (const re of LEVEL_PATTERNS.senior)  if (re.test(t)) return 'senior';
   for (const re of LEVEL_PATTERNS.intern)  if (re.test(t)) return 'intern';
   for (const re of LEVEL_PATTERNS.newgrad) if (re.test(t)) return 'newgrad';
+  for (const re of LEVEL_PATTERNS.mid)     if (re.test(t)) return 'mid';
 
   // Title was silent — fall back to the description, but only for the
   // strong signals, since JDs mention "intern" in boilerplate constantly.
   const d = String(description).slice(0, 1500);
   if (/\b(intern|co[\s\-]?op)\b.{0,40}\b(program|position|role|opportunity)\b/i.test(d)) return 'intern';
   if (/\bnew\s*grad|recent\s*graduate|graduating\s*(in|by)\s*20\d\d/i.test(d)) return 'newgrad';
+
+  // An unmarked title asking for a few years is the stretch band. Leaving
+  // these as "unknown" discarded 319 postings — most of the ordinary
+  // "Software Engineer" market, and the part of it worth stretching into.
+  //
+  // Except where the posting rules internships out in as many words. Amazon
+  // writes "3+ years of non-internship professional software development
+  // experience", and five internships is exactly what that sentence is
+  // there to exclude. Taking it at its word is not pessimism; applying
+  // anyway burns the application and the employer's patience.
+  const yrs = requiredYears(description);
+  const excludesInternships =
+    /\bnon[-\s]?intern(ship)?\b|\bexcluding\s+internships?\b|\boutside\s+of\s+internships?\b|\bpost[-\s]?graduation\s+experience\b/i
+      .test(d);
+  if (yrs > 0 && yrs <= 4 && !excludesInternships) return 'mid';
 
   return 'unknown';
 }
@@ -62,6 +85,34 @@ function classifyLevel(title = '', description = '') {
    of adding a family, not loosening the filter.        */
 
 const ROLE_FAMILIES = {
+  /* Solutions and forward-deployed engineering. The most under-rated
+     category for this profile: it pays like software engineering, it is
+     nowhere near as contested, and it is the one place where four years of
+     talking to stakeholders while writing the code is the qualification
+     rather than a footnote. Palantir, Ramp, Scale and most enterprise AI
+     companies hire heavily here. */
+  solutions: [
+    /\bsolutions?\s*(?:engineer|architect|developer|consultant)\b/i,
+    /\bforward[\s-]?deployed\b/i, /\bimplementation\s*(?:engineer|consultant|specialist)\b/i,
+    /\bintegration\s*engineer\b/i, /\bcustomer\s*engineer\b/i,
+    /\bfield\s*engineer\b/i, /\bdeployment\s*(?:engineer|strategist)\b/i,
+    /\bpartner\s*engineer\b/i, /\bsales\s*engineer\b/i,
+    /\btechnical\s*(?:account|success)\s*(?:manager|engineer)\b/i,
+    /\bapplications?\s*engineer\b/i
+  ],
+
+  /* Technical product and programme work. A CS degree plus a shipping record
+     is the standard way in, and the title ladder moves faster here than in
+     engineering. */
+  'tech-product': [
+    /\btechnical\s*(?:program|project|product)\s*manager\b/i, /\bTPM\b/,
+    /\bassociate\s*product\s*manager\b/i, /\bAPM\b/,
+    /\bproduct\s*(?:manager|owner)\b.*\b(technical|platform|api|developer|infrastructure)\b/i,
+    /\b(technical|platform|api|developer)\b.*\bproduct\s*manager\b/i,
+    /\bproduct\s*analyst\b/i, /\bprogram\s*manager\b.*\b(engineering|technical|platform)\b/i,
+    /\bproduct\s*operations\b/i, /\bbusiness\s*systems?\s*analyst\b/i
+  ],
+
   // Software engineering
   swe: [
     /\bsoftware\s*(?:development\s*)?engineer\b/i, /\bsoftware\s*developer\b/i,
@@ -115,6 +166,21 @@ const ROLE_FAMILIES = {
 
 /* Titles that read as technical but are a different job. Kept separate from
    the families so widening scope never accidentally admits them. */
+/* Titles that are pursued despite matching an exclusion below. A "Sales
+   Engineer" is an engineer who demos and integrates the product, not a
+   salesperson, and it pays like engineering. A "Technical Program Manager"
+   wants a CS degree. These are the less-contested lanes into good
+   companies, and blanket-excluding the words shut all of them. */
+const EXCLUSION_OVERRIDE = [
+  /\bsales\s*engineer\b/i, /\bsolutions?\s*(?:engineer|architect)\b/i,
+  /\bforward[\s-]?deployed\b/i, /\bimplementation\s*(?:engineer|consultant)\b/i,
+  /\bcustomer\s*engineer\b/i, /\bpartner\s*engineer\b/i,
+  /\btechnical\s*(?:program|project|product)\s*manager\b/i, /\bTPM\b/,
+  /\bassociate\s*product\s*manager\b/i, /\bAPM\b/,
+  /\bproduct\s*analyst\b/i, /\bbusiness\s*systems?\s*analyst\b/i,
+  /\bsolutions?\s*(?:developer|consultant)\b.*\b(engineer|technical|software|data)\b/i
+];
+
 const EXCLUDED_TITLE = [
   /\bsales\b/i, /\bsolutions?\s*(?:architect|consultant)\b/i,
   /\bcustomer\s*(?:success|support)\b/i, /\brecruit/i, /\bdesigner\b/i,
@@ -136,9 +202,14 @@ const EXCLUDED_TITLE = [
  */
 function classifyFamily(title = '') {
   const t = String(title);
-  for (const re of EXCLUDED_TITLE) if (re.test(t)) return null;
-  // Most specific first: a "Quantitative Developer" is quant, not generic swe.
-  for (const fam of ['quant-dev', 'quant-research', 'data', 'analyst', 'swe']) {
+  const spared = EXCLUSION_OVERRIDE.some(re => re.test(t));
+  if (!spared) { for (const re of EXCLUDED_TITLE) if (re.test(t)) return null; }
+  // Most specific first: a "Quantitative Developer" is quant, not generic
+  // swe, and a "Forward Deployed Software Engineer" is solutions work rather
+  // than a plain engineering seat — which matters, because it is scored and
+  // CV-matched differently.
+  for (const fam of ['quant-dev', 'quant-research', 'solutions', 'tech-product',
+                     'data', 'analyst', 'swe']) {
     for (const re of ROLE_FAMILIES[fam]) if (re.test(t)) return fam;
   }
   return null;
@@ -338,18 +409,32 @@ const DEFAULT_RULES = {
   minSalaryCAD: 90000,
   salaryPolicy: 'max',          // compare range top against the threshold
   allowUnknownSalary: true,     // most postings do not disclose pay
-  levels: ['intern', 'newgrad'],
+  // Internships stay in — they convert, and they are winnable. "mid" is the
+  // stretch band: an unmarked "Software Engineer" that wants two or three
+  // years is a role the internship record actually answers.
+  levels: ['intern', 'newgrad', 'mid'],
   allowUnknownLevel: false,
   // A title with no seniority marker is common, especially at banks. If the
   // body asks for no more than a year of experience, the role is entry-level
   // whatever the title says — treat it as new-grad rather than discarding it.
   inferEntryFromExperience: true,
   inferEntryMaxYears: 1,
-  maxRequiredYears: 2,
+  // Five internships across five years is real, dated, verifiable experience,
+  // and it is unusual for a new graduate. A posting asking for three years is
+  // a legitimate stretch, not a waste of an application — and the stretch is
+  // where the title and the pay are. Four is the point where the ask stops
+  // being about internships and starts being about someone who has shipped
+  // and owned production systems for years.
+  maxRequiredYears: 4,
   regions: ['CA', 'US'],
   maxAgeDays: 45,
   // Which role families to pursue. Widening scope is a config change.
-  families: ['swe', 'quant-dev', 'quant-research', 'data', 'analyst'],
+  // Broad on purpose. A CS degree with five internships, front-end and
+  // back-end both, and four years of stakeholder work qualifies for more
+  // than one lane — and the less-contested lanes are where a career
+  // breakout is actually available.
+  families: ['swe', 'solutions', 'tech-product', 'quant-dev', 'quant-research',
+             'data', 'analyst'],
   // Quant desks post PhD-only seats next to bachelor-level ones.
   excludeAdvancedDegree: true,
   // Applies only to postings whose level could not be determined.
@@ -395,7 +480,10 @@ function evaluate(job, salary, rules = {}) {
 
   if (level === 'senior') reasons.push('too-senior');
   else if (!r.levels.includes(level) && !(level === 'unknown' && r.allowUnknownLevel)) {
-    reasons.push(level === 'unknown' ? 'level-unclear' : `level-${level}`);
+    reasons.push(
+      level === 'unknown' && /\bnon[-\s]?intern(ship)?\b|\bexcluding\s+internships?\b/i.test(job.description || '')
+        ? 'requires-non-internship-experience'
+        : level === 'unknown' ? 'level-unclear' : `level-${level}`);
   }
 
   if (years > r.maxRequiredYears) reasons.push(`requires-${years}y-experience`);

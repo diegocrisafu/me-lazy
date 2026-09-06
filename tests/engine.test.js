@@ -68,15 +68,56 @@ test('new-grad titles classify as newgrad', () => {
 });
 
 test('senior titles are rejected, including numeral levels', () => {
-  for (const t of ['Senior Software Engineer', 'Staff Engineer', 'Software Engineer II', 'Principal Architect']) {
+  for (const t of ['Senior Software Engineer', 'Staff Engineer', 'Software Engineer III',
+                   'Software Engineer IV', 'Principal Architect', 'Engineering Manager']) {
     assert.equal(target.classifyLevel(t), 'senior', t);
   }
 });
 
+test('the second rung is a stretch, not a rejection', () => {
+  // Five internships across five years answers "Engineer II" and an unmarked
+  // title asking for a few years. Those are where the title and the pay move,
+  // so they are pursued rather than filtered out — III and above are not.
+  for (const t of ['Software Engineer II', 'Software Engineer 2', 'Intermediate Developer']) {
+    assert.equal(target.classifyLevel(t), 'mid', t);
+  }
+  assert.equal(target.classifyLevel('Software Engineer',
+    'Build backend systems. 3+ years of experience.'), 'mid');
+
+  // But a genuine mid-career ask is still out of range.
+  assert.equal(target.classifyLevel('Software Engineer',
+    '6+ years of experience required.'), 'unknown');
+
+  const ev = target.evaluate(
+    { title: 'Software Engineer II', description: 'Own backend services end to end.',
+      location: 'Toronto, ON', ageDays: 3 },
+    { min: 130000, max: 190000, currency: 'CAD' }, {});
+  assert.equal(ev.eligible, true);
+  assert.equal(ev.level, 'mid');
+});
+
 test('non-engineering titles are not dev roles', () => {
-  for (const t of ['Sales Engineer', 'Product Manager', 'Recruiter', 'Mechanical Engineer']) {
+  for (const t of ['Account Executive', 'Product Manager', 'Recruiter',
+                   'Mechanical Engineer', 'Marketing Manager', 'Support Engineer']) {
     assert.equal(target.isDevRole(t), false, t);
   }
+});
+
+test('technical-adjacent titles are pursued, not blanket-excluded', () => {
+  // A Sales Engineer is an engineer who demos and integrates the product,
+  // and a TPM wants a CS degree. These are the less-contested lanes into
+  // good companies, and excluding the words "sales" and "manager" shut all
+  // of them. They are classified as their own families so they are scored
+  // and CV-matched as what they are.
+  assert.equal(target.classifyFamily('Sales Engineer'), 'solutions');
+  assert.equal(target.classifyFamily('Forward Deployed Software Engineer'), 'solutions');
+  assert.equal(target.classifyFamily('Solutions Architect'), 'solutions');
+  assert.equal(target.classifyFamily('Technical Program Manager'), 'tech-product');
+  assert.equal(target.classifyFamily('Associate Product Manager'), 'tech-product');
+
+  // The override is narrow: a plain Product Manager is still not pursued.
+  assert.equal(target.classifyFamily('Product Manager'), null);
+  assert.equal(target.classifyFamily('Account Executive'), null);
 });
 
 /* ═══════ EXPERIENCE PARSING ═══════
@@ -105,7 +146,10 @@ test('mid-level role is rejected even when the title is silent about level', () 
   };
   const ev = target.evaluate(job, { found: false });
   assert.equal(ev.eligible, false);
-  assert.ok(ev.reasons.includes('requires-3y-experience'));
+  // The years bar alone no longer rejects it — five internships stretch to
+  // three years. What rejects it is the posting saying "non-internship" in
+  // as many words, which is exactly what that sentence is there to exclude.
+  assert.ok(ev.reasons.includes('requires-non-internship-experience'));
 });
 
 test('entry level is inferred only on positive evidence', () => {

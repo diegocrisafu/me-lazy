@@ -18,6 +18,13 @@
       to the scouting report instead of guessing.
    ═══════════════════════════════════════════ */
 
+/* tiers.js in Node, self.__tiers in the extension — same pattern the other
+   shared modules use. When it is not available the runner simply does not
+   hold anything back, which is the old behaviour. */
+const TIERS = (typeof require !== 'undefined')
+  ? require('./tiers.js')
+  : (typeof self !== 'undefined' ? self.__tiers : null);
+
 const RUNNER_DEFAULTS = {
   enabled: false,
   huntEveryMinutes: 180,        // 3h — postings do not appear faster than this
@@ -117,13 +124,22 @@ function decide(state, cfg = {}) {
     }
   }
 
+  // The shortlist is held back. Firing a generic application at the twelve
+  // roles most worth winning is the one thing this system can do that is
+  // worse than doing nothing: the application is spent either way, and most
+  // of these employers will not look at a second one.
+  const shortlist = (TIERS && c.holdShortlist !== false)
+    ? new Set(TIERS.assignTiers(queue).filter(x => x.tier === 'S').map(x => x.rec.id))
+    : new Set();
+
   const eligible = queue.filter(j =>
-    (perCompany[j.companyId] || 0) < c.perCompanyDailyCap);
+    (perCompany[j.companyId] || 0) < c.perCompanyDailyCap && !shortlist.has(j.id));
 
   if (!eligible.length) {
     return queue.length
-      ? { action: 'wait', reason:
-          `every queued employer is at today's per-company cap of ${c.perCompanyDailyCap}`,
+      ? { action: 'wait', reason: shortlist.size >= queue.length
+          ? `only the ${shortlist.size}-role shortlist is left — run: node tools/tailor.js --list`
+          : `every queued employer is at today's per-company cap of ${c.perCompanyDailyCap}`,
           waitMinutes: 60 }
       : { action: 'hunt', reason: 'nothing left to apply to' };
   }

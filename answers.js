@@ -432,7 +432,11 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
       'Power BI, machine learning, artificial intelligence, LLM, data structures, algorithms',
     tools: profile.tools ||
       'Git, Docker, CI/CD, Jenkins, Bash, PowerShell, Jira, HTML, CSS, Unreal Engine, SQLite, asyncio',
-    yearsExperience: profile.yearsExperience || '2',
+    // Five internships from 2021 to 2026 — Presagis, CAE x3, McKesson — is
+    // about four and a half years of dated, verifiable software work. "2"
+    // was undercounting it badly on every form that asks. 4 is what the CV
+    // dates support without calling internship time full-time seniority.
+    yearsExperience: profile.yearsExperience || ['4', '4+', '5', '3'],
     graduationTerm: profile.graduationTerm ||
       ['Summer', 'Summer 2027', 'Winter', 'Either', 'No preference', 'Any'],
     preferredLocation: profile.preferredLocation ||
