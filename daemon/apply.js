@@ -970,20 +970,27 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     // parse that comes back empty overwrites what was already typed — which
     // is how an application gets blocked on First Name. Anything required
     // that the upload emptied is filled again here.
-    if (files && files.length) {
-      await page.waitForTimeout(1200);
-      const after = await surveyFields(page);
-
-      const emptied = after.filter(f =>
-        f.required && !f.disabled && f.visible && !f.hasValue && !f.isProxy &&
-        !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes(f.type));
-
-      for (const info of emptied) {
+    // Twice, because the parse is asynchronous and lands at its own pace:
+    // Ashby overwrites the repair a second or two after it runs, so a single
+    // pass left OpenAI's Legal Name and Phone Number empty again.
+    if (files && (files.resume || files.coverLetter || files.transcript)) {
+      for (const settle of [1500, 3500]) {
         if (Date.now() > deadline) break;
-        const handle = await page.$(`[data-acc-i="${info.i}"]`).catch(() => null);
-        if (!handle) continue;
-        const r = await fillField(page, handle, info, answers, ctx).catch(() => null);
-        if (r && !filled.some(f => f.label === r.label)) filled.push(r);
+        await page.waitForTimeout(settle);
+        const after = await surveyFields(page);
+
+        const emptied = after.filter(f =>
+          f.required && !f.disabled && f.visible && !f.hasValue && !f.isProxy &&
+          !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes(f.type));
+        if (!emptied.length) break;
+
+        for (const info of emptied) {
+          if (Date.now() > deadline) break;
+          const handle = await page.$(`[data-acc-i="${info.i}"]`).catch(() => null);
+          if (!handle) continue;
+          const r = await fillField(page, handle, info, answers, ctx).catch(() => null);
+          if (r && !filled.some(f => f.label === r.label)) filled.push(r);
+        }
       }
     }
 
