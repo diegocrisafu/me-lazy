@@ -883,3 +883,17 @@ test('a team list with no ranking asked for still gets picked', () => {
   // And a list that is not areas is still declined.
   assert.equal(resolver.matchPreference('What is your favourite colour?', ['Red', 'Blue']), null);
 });
+
+test('a Workday session unlocks one employer, not all of them', () => {
+  const td = { ats: 'workday', cvFile: 'x.pdf',
+    applyUrl: 'https://td.wd3.myworkdayjobs.com/en-US/TD_Bank_Careers/job/123' };
+  const bmo = { ats: 'workday', cvFile: 'x.pdf',
+    applyUrl: 'https://bmo.wd3.myworkdayjobs.com/en-US/External/job/456' };
+
+  assert.equal(runner.applyability(td, {}, { missingCritical: [] }).canAuto, false);
+
+  const held = { missingCritical: [], sessions: ['td.wd3.myworkdayjobs.com'] };
+  assert.equal(runner.applyability(td, {}, held).canAuto, true);
+  // Workday accounts are per employer, so TD's must not open BMO's.
+  assert.equal(runner.applyability(bmo, {}, held).canAuto, false);
+});

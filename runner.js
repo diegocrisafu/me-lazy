@@ -168,7 +168,12 @@ const AUTO_APPLY_SUPPORT = {
   lever:           { auto: true,  note: 'single-page form, fully fillable' },
   ashby:           { auto: true,  note: 'single-page form, fully fillable' },
   smartrecruiters: { auto: true,  note: 'single-page form' },
-  workday:         { auto: false, reason: 'needs an account per employer and a multi-step wizard' },
+  // Workday wants an account per employer, so the session key is the
+  // employer's own Workday host rather than a single vendor domain. Signing
+  // in once at td.wd3.myworkdayjobs.com unlocks TD and nothing else, which
+  // is exactly how Workday works.
+  workday:         { auto: true, sessionFromHost: true,
+                     reason: 'needs an account with this employer — run: npm run login -- <the job URL>' },
   custom:          { auto: false, reason: 'employer runs its own application flow' },
   // Sites with their own account wall but an otherwise ordinary form. These
   // are appliable once, and only once, a session exists in the browser
@@ -188,9 +193,18 @@ function applyability(job, answers = {}, opts = {}) {
   if (!support.auto) blockers.push(support.reason);
 
   // An account-walled site is only appliable while we hold its session.
-  if (support.auto && support.needsSession) {
+  if (support.auto && (support.needsSession || support.sessionFromHost)) {
     const held = opts.sessions || [];
-    if (!held.includes(support.needsSession)) blockers.push(support.reason);
+    let need = support.needsSession;
+    if (support.sessionFromHost) {
+      try { need = new URL(job.applyUrl || job.url).hostname.replace(/^www\./, ''); }
+      catch { need = null; }
+    }
+    if (!need || !held.includes(need)) {
+      blockers.push(need && support.sessionFromHost
+        ? `needs an account at ${need} — run: npm run login -- ${job.applyUrl || job.url}`
+        : support.reason);
+    }
   }
 
   // Measured per employer: some boards redirect to the company's own careers
