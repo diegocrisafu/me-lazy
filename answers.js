@@ -84,6 +84,35 @@ const ANSWER_RULES = [
     re: /restrictions?\s*on\s*post[-\s]?government\s*employment|post[-\s]?government\s*employment\s*restrictions?/i,
     from: 'postGovernmentRestrictions' },
 
+  /* "Any recruiting timelines we should know about?" — a real question with
+     a real answer: the McKesson contract runs to December 2026, so a start
+     in January is clean, and a competing deadline is worth naming because it
+     moves you up a queue rather than down it. */
+  /* The detail box first, so its longer match wins over the yes/no. Same
+     split as outstandingOffers: the question asks whether, the follow-up
+     asks what. */
+  { id: 'recruitingTimelineDetail',
+    re: /(?:share|provide|tell\s*us)\s*(?:more\s*)?details?[^?]{0,40}timeline|details?\s*about\s*(?:the\s*)?(?:relevant\s*)?timeline|please\s*(?:describe|explain)[^?]{0,30}timeline/i,
+    from: 'recruitingTimelineDetail' },
+  { id: 'recruitingTimeline',
+    re: /(?:do\s*you\s*have\s*)?any\s*(?:recruit(?:ing|ment)?\s*)?timelines?|recruit(?:ing|ment)?\s*timeline|timeline\s*(?:we|us)\s*should|deadlines?\s*(?:we|us)\s*should|any\s*(?:other\s*)?deadlines|decision\s*deadline|timing\s*constraints?/i,
+    from: 'recruitingTimeline' },
+
+  /* Interviewed here before — the same shape as having worked here. */
+  { id: 'interviewedBefore',
+    re: /(?:have\s*you\s*)?(?:ever\s*)?interview(?:ed)?\s*(?:with|at|for)\b[^?]{0,40}(?:before|previously|in\s*the\s*past)|previously\s*interviewed/i,
+    from: 'interviewedBefore' },
+
+  /* Still enrolled? Derived from the graduation date rather than assumed. */
+  { id: 'currentlyStudent',
+    re: /(?:are\s*you\s*)?currently\s*(?:a\s*)?(?:student|enrolled)\b|still\s*(?:a\s*student|enrolled|studying)/i,
+    not: /return|internship\s*(?:end|complet)/i, from: 'currentlyStudent' },
+
+  /* Some school-email fields want a reason when you do not supply one. */
+  { id: 'noSchoolEmailReason',
+    re: /(?:do\s*not|don'?t)\s*have\s*a\s*(?:school|university|academic)\s*e-?mail|reason[^?]{0,30}school\s*e-?mail/i,
+    from: 'noSchoolEmailReason' },
+
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
 /* ── Location and logistics the blocked list surfaced ── */
@@ -100,7 +129,12 @@ const ANSWER_RULES = [
   { id: 'firstName',  re: /first\s*name|given\s*name|pr[ée]nom/i, from: 'firstName' },
   { id: 'lastName',   re: /last\s*name|family\s*name|surname|nom\s*de\s*famille/i, from: 'lastName' },
   { id: 'fullName',   re: /full\s*(?:legal\s*)?name|legal\s*name|your\s*name|nom\s*complet|^name$/i, from: 'fullName' },
-  { id: 'email',      re: /e-?mail|courriel/i, not: /confirm/i, from: 'email' },
+  { id: 'email',      re: /e-?mail|courriel/i, from: 'email' },
+  // "Confirm email" wants the same address again — the old rule excluded it
+  // and left a required field blank on every form that asks twice.
+  { id: 'emailConfirm',
+    re: /(?:confirm|verify|re-?enter|repeat)[^?]{0,20}e-?mail|e-?mail[^?]{0,20}confirmation/i,
+    from: 'email' },
   { id: 'phone',      re: /phone|mobile|cell|t[ée]l[ée]phone/i, from: 'phone' },
   // Only filled where the form marks it required — see whenRequired in
   // fillField. A mailing address is not something to hand over to every
@@ -408,6 +442,22 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     usStateResidency: 'No',
     governmentEmployee: profile.governmentEmployee || 'No',
     postGovernmentRestrictions: profile.postGovernmentRestrictions || 'No',
+    // Yes — there is a timeline, and saying so puts you in front of a
+    // recruiter rather than behind one.
+    recruitingTimeline: profile.recruitingTimeline || 'Yes',
+    recruitingTimelineDetail: profile.recruitingTimelineDetail ||
+      'My contract at McKesson runs to December 2026, so I am available from January 2027 ' +
+      'and can move quickly on interviews before then. No competing offer deadlines at present.',
+    interviewedBefore: profile.interviewedBefore || 'No',
+    // Enrolled until the graduation date on the CV, and not after it.
+    currentlyStudent: (() => {
+      const g = String(cvFacts.gradDate || profile.gradDate || '2026-09').slice(0, 7);
+      const now = new Date().toISOString().slice(0, 7);
+      return g >= now ? 'Yes' : 'No';
+    })(),
+    noSchoolEmailReason: profile.noSchoolEmailReason ||
+      'My Concordia address is no longer my primary contact as I finish my degree; ' +
+      'I check the personal address above daily.',
     over18: profile.over18 || 'Yes',
 
     relocate: profile.relocate || 'Yes',

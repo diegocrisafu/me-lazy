@@ -1177,6 +1177,14 @@ async function applyTo(ctxBrowser, record, opts = {}) {
 
     // Fill, then fill again — some forms reveal conditional questions only
     // after an earlier answer is set.
+    // Two passes. A third was tried, to catch fields revealed by answering
+    // their parent — Jane Street's "any recruiting timelines?" uncovers a
+    // details box — and it did not catch them, so it was removed as dead
+    // weight rather than as a culprit: OpenAI failed alongside it, but then
+    // passed three times in a row with the third pass gone and nothing else
+    // changed. Ashby's forms are simply flaky, mounting fields late and
+    // failing on a different one each run. That is worth knowing before
+    // blaming the next change for it.
     for (let pass = 0; pass < 2; pass++) {
       const survey = await surveyFields(page);
       // Resolved by the stamp, not by position — see surveyFields.
