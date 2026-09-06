@@ -683,6 +683,91 @@ async function fillChoiceGroups(page, answers, ctx) {
   return filled;
 }
 
+/* Required fields the page itself still considers empty — the check that
+   catches a filler which reported success but left the form blank. Called
+   twice: once after filling, and again after the late repair pass. */
+async function readEmpties(page) {
+  return page.evaluate(() => {
+    /* The label that belongs to this group, and only this group. Climbing
+       past the first ancestor that also holds other questions is how a
+       consent checkbox ends up labelled "First Name*". Duplicated in the two
+       page.evaluate bodies because each runs in its own page context. */
+      function groupLabel(first, els, clean) {
+      const mine = new Set(els);
+      let node = first.closest('fieldset, [class*="field"], [class*="question"], div');
+      for (let i = 0; i < 5 && node; i++, node = node.parentElement) {
+        const inputs = [...node.querySelectorAll('input, select, textarea')]
+          .filter(e => !['hidden', 'submit', 'button'].includes(e.type));
+        // The moment this container holds a control from another question,
+        // its labels stop being about us.
+        if (inputs.some(e => !mine.has(e))) break;
+        const l = node.querySelector('legend, label:not([for]), [class*="label"]');
+        if (l && !l.querySelector('input')) {
+          const t = clean(l.textContent);
+          if (t) return t;
+        }
+      }
+      // An unlabelled consent control still has its name to go on.
+      return (first.name || '').replace(/[_\[\]]+/g, ' ').trim();
+    }
+
+    const out = [];
+    const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+
+    // Choice groups: required if any member is, empty unless one is checked.
+    // A checkbox's .value is "on" whether or not it is ticked, so the
+    // generic value test below would pass every unchecked required box.
+    const groups = {};
+    document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(el => {
+      const n = el.name; if (!n) return;
+      (groups[n] = groups[n] || []).push(el);
+    });
+    for (const [name, els] of Object.entries(groups)) {
+      if (els.some(e => e.checked)) continue;
+      const q = groupLabel(els[0], els, clean);
+      const req = els.some(e => e.required || e.getAttribute('aria-required') === 'true') || /\*/.test(q);
+      if (req) out.push(q || name);
+    }
+
+    document.querySelectorAll('input, textarea, select').forEach(el => {
+      const req = el.required || el.getAttribute('aria-required') === 'true';
+      if (!req) return;
+      if (el.type === 'radio' || el.type === 'checkbox') return;  // grouped above
+      if (el.type === 'file') { if (!el.files?.length) out.push(el.id || el.name || 'file'); return; }
+      // A dropdown is judged by what react-select rendered, never by the
+      // proxy input, which stays empty even on a correctly chosen option.
+      const container = el.closest('[class*="select__container"]');
+      if (container) {
+        const proxy = /requiredInput/i.test(el.className || '');
+        if (proxy) return;                       // the combobox speaks for it
+        if (el.getAttribute('role') === 'combobox') {
+          const v = container.querySelector('[class*="singleValue"], [class*="single-value"], [class*="multi-value__label"]');
+          if (!v || !v.textContent.trim()) {
+            const lab = container.querySelector('label');
+            out.push((lab?.textContent || el.id || 'dropdown').replace(/\s+/g, ' ').trim());
+          }
+          return;
+        }
+      }
+      if (!el.value || !el.value.trim()) {
+        // CSS.escape matters: Belvedere names its inputs
+        // cards[uuid][field0], and an unescaped selector throws, which took
+        // the whole check down and reported a form with no empty fields.
+        const lab = el.id
+          ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)
+          : null;
+        const name = (lab?.textContent || el.name || el.id || 'field')
+          .replace(/\s+/g, ' ').trim();
+        // The id disambiguates two controls that share a label, which is
+        // the difference between "we did not fill it" and "we filled the
+        // other one".
+        out.push(el.id && lab ? `${name} [#${el.id}]` : name);
+      }
+    });
+    return [...new Set(out)];
+  }).catch(() => []);
+}
+
 /* ─────────── resume + cover letter upload ─────────── */
 
 async function attachFiles(page, record, ctx) {
@@ -996,85 +1081,7 @@ async function applyTo(ctxBrowser, record, opts = {}) {
 
     // Required fields the form still considers empty. This is the check that
     // catches a filler which reported success but left the form blank.
-    const empties = await page.evaluate(() => {
-      /* The label that belongs to this group, and only this group. Climbing
-         past the first ancestor that also holds other questions is how a
-         consent checkbox ends up labelled "First Name*". Duplicated in the two
-         page.evaluate bodies because each runs in its own page context. */
-        function groupLabel(first, els, clean) {
-        const mine = new Set(els);
-        let node = first.closest('fieldset, [class*="field"], [class*="question"], div');
-        for (let i = 0; i < 5 && node; i++, node = node.parentElement) {
-          const inputs = [...node.querySelectorAll('input, select, textarea')]
-            .filter(e => !['hidden', 'submit', 'button'].includes(e.type));
-          // The moment this container holds a control from another question,
-          // its labels stop being about us.
-          if (inputs.some(e => !mine.has(e))) break;
-          const l = node.querySelector('legend, label:not([for]), [class*="label"]');
-          if (l && !l.querySelector('input')) {
-            const t = clean(l.textContent);
-            if (t) return t;
-          }
-        }
-        // An unlabelled consent control still has its name to go on.
-        return (first.name || '').replace(/[_\[\]]+/g, ' ').trim();
-      }
-
-      const out = [];
-      const clean = s => (s || '').replace(/\s+/g, ' ').trim();
-
-      // Choice groups: required if any member is, empty unless one is checked.
-      // A checkbox's .value is "on" whether or not it is ticked, so the
-      // generic value test below would pass every unchecked required box.
-      const groups = {};
-      document.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(el => {
-        const n = el.name; if (!n) return;
-        (groups[n] = groups[n] || []).push(el);
-      });
-      for (const [name, els] of Object.entries(groups)) {
-        if (els.some(e => e.checked)) continue;
-        const q = groupLabel(els[0], els, clean);
-        const req = els.some(e => e.required || e.getAttribute('aria-required') === 'true') || /\*/.test(q);
-        if (req) out.push(q || name);
-      }
-
-      document.querySelectorAll('input, textarea, select').forEach(el => {
-        const req = el.required || el.getAttribute('aria-required') === 'true';
-        if (!req) return;
-        if (el.type === 'radio' || el.type === 'checkbox') return;  // grouped above
-        if (el.type === 'file') { if (!el.files?.length) out.push(el.id || el.name || 'file'); return; }
-        // A dropdown is judged by what react-select rendered, never by the
-        // proxy input, which stays empty even on a correctly chosen option.
-        const container = el.closest('[class*="select__container"]');
-        if (container) {
-          const proxy = /requiredInput/i.test(el.className || '');
-          if (proxy) return;                       // the combobox speaks for it
-          if (el.getAttribute('role') === 'combobox') {
-            const v = container.querySelector('[class*="singleValue"], [class*="single-value"], [class*="multi-value__label"]');
-            if (!v || !v.textContent.trim()) {
-              const lab = container.querySelector('label');
-              out.push((lab?.textContent || el.id || 'dropdown').replace(/\s+/g, ' ').trim());
-            }
-            return;
-          }
-        }
-        if (!el.value || !el.value.trim()) {
-          // CSS.escape matters: Belvedere names its inputs
-          // cards[uuid][field0], and an unescaped selector throws, which took
-          // the whole check down and reported a form with no empty fields.
-          const lab = el.id
-            ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`)
-            : null;
-          const name = (lab?.textContent || el.name || el.id || 'field')
-            .replace(/\s+/g, ' ').trim();
-          // The id disambiguates two controls that share a label, which is
-          // the difference between "we did not fill it" and "we filled the
-          // other one".
-          out.push(el.id && lab ? `${name} [#${el.id}]` : name);
-        }
-      });
-      return [...new Set(out)];
-    }).catch(() => []);
+    let empties = await readEmpties(page);
     ctx.requiredStillEmpty = empties;
 
     // Evidence before any irreversible action.

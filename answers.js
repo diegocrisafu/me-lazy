@@ -181,7 +181,7 @@ const ANSWER_RULES = [
     from: 'noticePeriod' },
   { id: 'programmingLanguages', re: /programming\s*languages?|which\s*languages?\s*(?:do\s*you|are\s*you)|preferred\s*language/i,
     from: 'programmingLanguages' },
-  { id: 'yearsExperience', re: /years?\s*of\s*(?:relevant\s*)?experience|how\s*many\s*years/i,
+  { id: 'yearsExperience', re: /years?\s*of\s*(?:\w+\s+){0,2}experience|how\s*many\s*years|experience\s*\(years\)|total\s*years/i,
     from: 'yearsExperience' },
   { id: 'graduationTerm', re: /which\s*(?:term|semester|season)|summer\s*or\s*fall|term\s*(?:are\s*you\s*)?applying/i,
     from: 'graduationTerm' },
