@@ -63,11 +63,11 @@ const EVIDENCE = [
 
 const OPENERS = {
   intern: (role, company) =>
-    `I am applying for the ${role} internship at ${company}. I am a final-year Computer Science student at Concordia in Montreal, and I have spent four internships — at McKesson, CAE and Presagis — shipping software that went into production rather than sitting in a sandbox.`,
+    `I am applying for the ${role} internship at ${company}. I am a final-year Computer Science student at Concordia in Montreal, and I have spent five internships — at McKesson, CAE and Presagis — shipping software that went into production rather than sitting in a sandbox.`,
   newgrad: (role, company) =>
     `I am applying for the ${role} position at ${company}. I finish my Computer Science degree at Concordia this year, and I come to it with four completed internships at McKesson, CAE and Presagis, all of them writing production software.`,
   default: (role, company) =>
-    `I am writing to apply for the ${role} role at ${company}. I am a Computer Science student at Concordia in Montreal with four internships behind me at McKesson, CAE and Presagis.`
+    `I am writing to apply for the ${role} role at ${company}. I am a Computer Science student at Concordia in Montreal with five internships behind me at McKesson, CAE and Presagis.`
 };
 
 const CLOSERS = {

@@ -20,7 +20,8 @@
 /* Evidence, phrased for prose rather than a bullet. */
 const STORIES = {
   agent: {
-    triggers: ['llm', 'ai', 'agent', 'genai', 'rag', 'retrieval', 'nlp', 'machine learning'],
+    triggers: ['llm', 'ai', 'agent', 'genai', 'rag', 'retrieval', 'nlp', 'machine learning',
+               'anthropic', 'openai', 'cohere', 'reinforcement', 'model', 'inference'],
     text: 'At McKesson I am building an AI agent for the AI Canada team that ingests recorded ' +
           'video calls and turns them into structured transcripts, keyframes and summaries, then ' +
           'makes that corpus queryable so the agent can answer questions across past meetings. ' +
@@ -65,7 +66,11 @@ const STORIES = {
 
 /** Which stories the posting actually calls for. */
 function pick(job, max = 2) {
-  const text = `${job.title || ''} ${job.description || ''}`.toLowerCase();
+  // The company and the title count, not only the description. An Anthropic
+  // reinforcement-learning role was pulling the CAE pipeline paragraph
+  // because the posting body happened not to say "AI" — the name on the door
+  // is the strongest signal there is about what they want to read.
+  const text = `${job.company || ''} ${job.title || ''} ${job.description || ''}`.toLowerCase();
   const scored = Object.entries(STORIES)
     .map(([k, s]) => [k, s, s.triggers.filter(t => text.includes(t)).length])
     .filter(([, , n]) => n > 0)
@@ -90,7 +95,7 @@ const KINDS = {
     const stories = pick(job, 1);
     return [
       h ? `What draws me to ${co} is the actual work — ${h}.`
-        : `${co} is working on problems I have spent my degree and four internships getting close to.`,
+        : `${co} is working on problems I have spent my degree and five internships getting close to.`,
       stories[0].text,
       `I would rather be somewhere the engineering is the product than somewhere it supports it, ` +
       `and that is what this role reads like.`
@@ -108,7 +113,7 @@ const KINDS = {
   /* Greatest strength / tell us about yourself */
   strengths(job) {
     return 'I am at my best when the problem is under-specified and the first job is working out ' +
-      'what is actually being asked. Across four internships the pattern has been the same: find ' +
+      'what is actually being asked. Across five internships the pattern has been the same: find ' +
       'the manual step everyone has quietly accepted, and remove it. ' + pick(job, 1)[0].text;
   },
 
