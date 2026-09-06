@@ -421,7 +421,17 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     canPerformDuties: profile.canPerformDuties || 'Yes',
     conflictsOfInterest: profile.conflictsOfInterest || 'No',
     acknowledge: profile.acknowledge || ['Yes', 'I acknowledge', 'I understand', 'I agree'],
-    programmingLanguages: profile.programmingLanguages || 'Python, C++, Java, JavaScript',
+    programmingLanguages: profile.programmingLanguages ||
+      'Python, C++, C, Java, JavaScript, TypeScript, Swift, PowerShell, SQL',
+    // Everything else the CV lists. The skill-level matcher was only being
+    // shown the languages line, so it answered "beginner" for Docker and AWS
+    // — both of which are on the résumé — and understated you on every form
+    // that asks.
+    skills: profile.skills ||
+      '.NET, SQL, MongoDB, NoSQL, AWS, Amazon Web Services, GCP, Google Cloud Platform, ' +
+      'Power BI, machine learning, artificial intelligence, LLM, data structures, algorithms',
+    tools: profile.tools ||
+      'Git, Docker, CI/CD, Jenkins, Bash, PowerShell, Jira, HTML, CSS, Unreal Engine, SQLite, asyncio',
     yearsExperience: profile.yearsExperience || '2',
     graduationTerm: profile.graduationTerm ||
       ['Summer', 'Summer 2027', 'Winter', 'Either', 'No preference', 'Any'],
