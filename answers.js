@@ -185,10 +185,29 @@ const ANSWER_RULES = [
   // Education date controls are usually split into month and year selects.
   // "Immediately" in a month dropdown is a failed submit, so these are
   // separated from the availability question entirely.
-  { id: 'eduEndMonth',   re: /end\s*date\s*month|graduation\s*month|completion\s*month/i, from: 'gradMonth' },
-  { id: 'eduEndYear',    re: /end\s*date\s*year|graduation\s*year|completion\s*year/i,   from: 'gradYear' },
-  { id: 'eduStartMonth', re: /start\s*date\s*month/i, from: 'eduStartMonth' },
-  { id: 'eduStartYear',  re: /start\s*date\s*year/i,  from: 'eduStartYear' },
+  /* Greenhouse labels the education and employment blocks identically —
+     both say "Start date month" — and writes education dates into the job
+     block if nobody looks at the id. That is how McKesson came out showing
+     a September 2022 start, which is when the degree began. The education
+     ids carry a double dash (school--0, degree--0); the employment ones do
+     not (start-date-year-0, current-role-0_1). */
+  { id: 'eduEndMonth',   idNot: /^(start|end)-date-\w+-\d|^current-role/i,
+    re: /end\s*date\s*month|graduation\s*month|completion\s*month/i, from: 'gradMonth' },
+  { id: 'eduEndYear',    idNot: /^(start|end)-date-\w+-\d|^current-role/i,
+    re: /end\s*date\s*year|graduation\s*year|completion\s*year/i,   from: 'gradYear' },
+  { id: 'eduStartMonth', idNot: /^(start|end)-date-\w+-\d/i,
+    re: /start\s*date\s*month/i, from: 'eduStartMonth' },
+  { id: 'eduStartYear',  idNot: /^(start|end)-date-\w+-\d/i,
+    re: /start\s*date\s*year/i,  from: 'eduStartYear' },
+
+  /* The employment block. The end date is deliberately absent: the current
+     role is marked with the "Current role" checkbox instead, and supplying
+     an end date in the future is what the form rejected. */
+  { id: 'jobStartMonth', idIs: /^start-date-month-\d/i, re: /start\s*date\s*month/i, from: 'jobStartMonth' },
+  { id: 'jobStartYear',  idIs: /^start-date-year-\d/i,  re: /start\s*date\s*year/i,  from: 'jobStartYear' },
+  { id: 'jobEndMonth',   idIs: /^end-date-month-\d/i,   re: /end\s*date\s*month/i,   from: 'jobEndMonth' },
+  { id: 'jobEndYear',    idIs: /^end-date-year-\d/i,    re: /end\s*date\s*year/i,    from: 'jobEndYear' },
+  { id: 'currentRole',   consent: true, idIs: /^current-role/i, re: /current\s*role/i },
   { id: 'gradYearOnly',  re: /(?:when\s*(?:did|do)\s*you\s*(?:expect\s*to\s*)?graduat|graduation\s*year|year\s*of\s*graduation|expect\s*to\s*graduate)/i,
     not: /high\s*school/i, from: 'gradYearOptions' },
   { id: 'gradDate',      re: /graduation|grad\s*date|expected\s*(?:date|completion|graduation)|date\s*de\s*fin|when\s*(?:will\s*)?you\s*(?:will\s*)?complete/i,
@@ -489,6 +508,13 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
       'retrieval-augmented generation over an unstructured video and transcript corpus, ' +
       'semantic search and embeddings, prompt design and evaluation, and machine-learning ' +
       'point-cloud workflows from the NVIDIA research collaboration at Presagis.',
+    // McKesson, the role you are actually in. The end date is left empty on
+    // purpose — "Current role" is ticked instead, and a future end date is
+    // what IMC's form rejected outright.
+    jobStartMonth: profile.jobStartMonth || 'May',
+    jobStartYear: profile.jobStartYear || '2026',
+    jobEndMonth: profile.jobEndMonth || '',
+    jobEndYear: profile.jobEndYear || '',
     over18: profile.over18 || 'Yes',
 
     relocate: profile.relocate || 'Yes',
@@ -611,6 +637,10 @@ function answerFor(question, answers = {}, opts = {}) {
     const m = qm.match(rule.re) || q.match(rule.re);
     if (!m) continue;
     if (rule.not && rule.not.test(q)) continue;
+    // Some labels are identical in two blocks of the same form. Where a rule
+    // says which block it belongs to, the field's id decides.
+    if (rule.idIs && !rule.idIs.test(String(opts.fieldId || ''))) continue;
+    if (rule.idNot && rule.idNot.test(String(opts.fieldId || ''))) continue;
     candidates.push([m[0].length, candidates.length, rule]);
   }
   candidates.sort((a, b) => (b[0] - a[0]) || (a[1] - b[1]));

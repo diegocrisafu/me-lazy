@@ -82,6 +82,12 @@ async function surveyFields(page) {
         tag: el.tagName.toLowerCase(),
         type: (el.type || '').toLowerCase(),
         name: el.name || '',
+        // Greenhouse gives the employment and education blocks the same
+        // labels — both say "Start date month" — and only the id tells them
+        // apart. Without it, education dates were being written into the
+        // employment block: McKesson showing a 2022 start, which is when
+        // the degree began.
+        id: el.id || '',
         hasValue: Boolean(el.value && el.value.trim()),
         disabled: el.disabled || el.readOnly,
         visible: Boolean(el.offsetParent || el.getClientRects().length),
@@ -145,7 +151,7 @@ async function fillField(page, handle, info, answers, ctx) {
     label = raw;
   }
 
-  const r = ANSWERS.answerFor(label, answers);
+  const r = ANSWERS.answerFor(label, answers, { fieldId: info.id || '' });
 
   // Some answers are given only where the form insists. A mailing address is
   // real personal data, and a form with an optional box for it does not need
@@ -749,6 +755,16 @@ async function fillChoiceGroups(page, answers, ctx) {
       // both a wrong question and a required box nobody ticked.
       let question = groupLabel(first, els, clean);
 
+      // A single checkbox is its own question, and its label is a
+      // label[for=...] — which groupLabel skips on purpose, because in a
+      // multi-option group that label names an option rather than the
+      // question. "Current role" was falling through to the raw field name.
+      if (els.length === 1 && first.id) {
+        const own = document.querySelector(`label[for="${CSS.escape(first.id)}"]`);
+        const t = clean(own && own.textContent);
+        if (t && t.length < 120) question = t;
+      }
+
       const options = els.map(el => {
         const own = el.closest('label');
         const forLab = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null;
@@ -760,14 +776,17 @@ async function fillChoiceGroups(page, answers, ctx) {
       const kind = els[0].type;
       // A lone consent checkbox is not a multiple-choice question.
       const single = els.length === 1;
-      return { name, question, options, required, answered, kind, single };
+      return { name, question, options, required, answered, kind, single,
+               // The id lets a rule tell two identically-labelled blocks
+               // apart — "Current role" belongs to employment, not education.
+               id: first.id || '' };
     });
   }).catch(() => []);
 
   const filled = [];
   for (const g of groups) {
     if (g.answered || !g.question) continue;
-    const r = ANSWERS.answerFor(g.question, answers);
+    const r = ANSWERS.answerFor(g.question, answers, { fieldId: g.id || '' });
 
     let want = null;
     if (r.status === 'exact') want = r.alternatives || [r.value];
@@ -882,7 +901,22 @@ async function readEmpties(page) {
     document.querySelectorAll('input, textarea, select').forEach(el => {
       const req = el.required || el.getAttribute('aria-required') === 'true';
       if (!req) return;
+      // A field the page has hidden cannot block a person either, and
+      // Greenhouse leaves "required" on the employment end-date inputs after
+      // "Current role" is ticked and they are taken off screen.
+      if (el.type !== 'hidden' && !el.offsetParent && !el.getClientRects().length) return;
       if (el.type === 'radio' || el.type === 'checkbox') return;  // grouped above
+
+      // Greenhouse leaves aria-required on the employment end-date controls
+      // even when "Current role" is ticked, so this check was stricter than
+      // the form: it refused to submit an application the page would have
+      // accepted. An end date is genuinely absent for a job you still hold.
+      const endDate = /^end-date-(month|year)-(\d+)/.exec(el.id || '');
+      if (endDate) {
+        const current = document.querySelector(
+          `input[type="checkbox"][id^="current-role-${endDate[2]}"]`);
+        if (current && current.checked) return;
+      }
       if (el.type === 'file') { if (!el.files?.length) out.push(el.id || el.name || 'file'); return; }
       // A dropdown is judged by what react-select rendered, never by the
       // proxy input, which stays empty even on a correctly chosen option.
