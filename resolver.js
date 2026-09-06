@@ -72,6 +72,14 @@ function polarity(question, answers) {
     return { value: 'Yes', why: 'willingness' };
   }
 
+  // A second nationality or residency the profile does not claim. Twitch asks
+  // it for export-control screening, and the answer follows from holding one
+  // citizenship and living in the country that issued it.
+  if (/\b(permanent resident|dual (citizen|national)|second (citizenship|passport)|any other countr)\b/.test(q)
+      && /\b(other|another|additional|second)\b/.test(q)) {
+    return { value: 'No', why: 'one citizenship, no other residency' };
+  }
+
   // Prior relationship with this employer, or a named affinity programme.
   if (/\b(ever worked|previously (worked|applied|employed)|former employee|current employee)\b/.test(q)) {
     return { value: 'No', why: 'no prior relationship' };
@@ -411,6 +419,61 @@ function matchScale(question, options = [], answers = {}) {
   return levels[want] ? levels[want].o : null;
 }
 
+
+/* ── Confirmations with a checkable claim in them ──
+   "I confirm that my graduation date will be either Fall 2026 or Spring
+   2027" is not a consent box. It is a factual assertion, and ticking it
+   without checking is how a claim that is not true gets made on your
+   behalf. The date is in the question, so it can be checked. */
+
+function confirmClaim(question, options = [], answers = {}) {
+  const q = String(question);
+  if (!/\b(i\s*confirm|i\s*certify|i\s*attest|confirm\s*that)\b/i.test(q)) return null;
+  if (!/graduat|complet\w*\s*(?:my|the)\s*(?:degree|program)/i.test(q)) return null;
+
+  const mine = monthIndex(answers.gradDate || answers.gradYear || '');
+  if (mine === null) return null;
+
+  // Every date the claim offers, as a window of that term.
+  const terms = q.match(/(?:spring|summer|fall|autumn|winter|january|february|march|april|may|june|july|august|september|october|november|december)\s*(?:of\s*)?(?:19|20)\d{2}/gi) || [];
+  if (!terms.length) return null;
+
+  // A term is a season, so allow the months either side of its midpoint.
+  const ok = terms.some(t => Math.abs(monthIndex(t) - mine) <= 2);
+  const want = ok ? 'Yes' : 'No';
+  const match = options.find(o => (want === 'Yes' ? YES : NO).test(o));
+  return match ? { value: match, why: `graduation is ${ok ? 'in' : 'outside'} the stated window`,
+                   confidence: 'high' } : null;
+}
+
+/* ── How well you know the company ──
+   Asked as a scale, and the honest answer for someone who researched it
+   enough to write an application is the middle: more than having heard of
+   it, less than knowing it well. */
+
+function matchFamiliarity(question, options = []) {
+  const q = String(question);
+  if (!/how\s*(?:familiar|well)\s*(?:were|are|do)\s*you/i.test(q)) return null;
+  if (/\b(with|using)\s+(?:the\s+)?(?:tool|technolog|language|framework|stack)/i.test(q)) return null;
+
+  const rank = [
+    /never\s*heard|not\s*at\s*all|no\s*familiarity|unfamiliar/i,
+    /had\s*heard|knew\s*little|slightly|a\s*little|somewhat\s*aware/i,
+    /somewhat\s*familiar|moderately|fairly\s*familiar|reasonably/i,
+    /very\s*familiar|extremely|know\s*it\s*well|follow\s*(?:them|it)\s*closely/i
+  ];
+  const found = options
+    .map(o => ({ o, r: rank.findIndex(re => re.test(o)) }))
+    .filter(x => x.r >= 0)
+    .sort((a, b) => a.r - b.r);
+  if (found.length < 3) return null;
+
+  // The middle rung that exists, never the top — "very familiar" invites a
+  // follow-up question you have not prepared for.
+  const mid = found.find(x => x.r === 2) || found.find(x => x.r === 1);
+  return mid ? mid.o : null;
+}
+
 /**
  * Decide an answer for a question no rule recognised.
  *
@@ -426,6 +489,11 @@ function resolve(question, options = [], answers = {}) {
   const f = facts(answers);
   const usable = options.map(o => String(o).trim()).filter(Boolean);
 
+  // A confirmation carrying a checkable claim is decided before the generic
+  // yes/no path, which would otherwise swallow it and answer from nothing.
+  const claim = confirmClaim(q, usable, answers);
+  if (claim) return claim;
+
   // A yes/no control: reason about the question rather than the options.
   const looksBoolean = usable.length > 0 && usable.length <= 3 &&
     usable.some(o => YES.test(o)) && usable.some(o => NO.test(o));
@@ -439,6 +507,10 @@ function resolve(question, options = [], answers = {}) {
     const match = usable.find(o => (p.value === 'Yes' ? YES : NO).test(o));
     return match ? { value: match, why: p.why, confidence: 'high' } : null;
   }
+
+  // How well you know the company, asked as a scale.
+  const fam = matchFamiliarity(q, usable);
+  if (fam) return { value: fam, why: 'researched enough to apply', confidence: 'medium' };
 
   // A self-assessed skill level, answered from what the CV actually shows.
   const scale = matchScale(q, usable, answers);
@@ -496,6 +568,6 @@ function resolve(question, options = [], answers = {}) {
   return null;
 }
 
-const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, matchConcept, matchPreference, matchScale, skillSubject, ordinal, monthIndex, quantity, interval, facts };
+const __resolver = { resolve, polarity, optionPolarity, scoreOption, matchRange, matchDate, matchConcept, matchPreference, matchScale, skillSubject, confirmClaim, matchFamiliarity, ordinal, monthIndex, quantity, interval, facts };
 if (typeof module !== 'undefined' && module.exports) module.exports = __resolver;
 if (typeof self !== 'undefined') self.__resolver = __resolver;

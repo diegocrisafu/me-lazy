@@ -708,3 +708,33 @@ test('a skill scale is answered from the CV, never above it', () => {
   // A list that is not a scale is left alone.
   assert.equal(resolver.matchScale('My experience with Docker is as follows:', ['Yes', 'No'], a), null);
 });
+
+test('a confirmation carrying a claim is checked, not just ticked', () => {
+  const resolver = require('../resolver.js');
+  const a = answers.defaultAnswers({}, { gradDate: '2026-09' }, { region: 'US' });
+
+  // Scale AI asks you to confirm a graduation window. September 2026 is in it.
+  const yes = resolver.resolve(
+    'I confirm that my graduation date will be either Fall 2026 or Spring 2027*',
+    ['Yes', 'No'], a);
+  assert.equal(yes.value, 'Yes');
+
+  // A window it is not in must answer No rather than tick a false claim.
+  const no = resolver.resolve(
+    'I confirm that my graduation date will be either Fall 2028 or Spring 2029*',
+    ['Yes', 'No'], a);
+  assert.equal(no.value, 'No');
+
+  // An ordinary yes/no question is unaffected.
+  assert.equal(resolver.resolve('Are you willing to relocate?', ['Yes', 'No'], a).value, 'Yes');
+});
+
+test('familiarity with the company answers the middle, never the top', () => {
+  const resolver = require('../resolver.js');
+  const a = answers.defaultAnswers({}, {}, { region: 'US' });
+  const opts = ['Never heard of it before', 'Had heard of it but knew little about it',
+                'Somewhat familiar', 'Very familiar'];
+  const r = resolver.resolve(
+    'Before seeing this job posting, how familiar were you with Faire as a company?', opts, a);
+  assert.equal(r.value, 'Somewhat familiar');
+});
