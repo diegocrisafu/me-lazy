@@ -5,8 +5,12 @@ node_modules/
 # Runtime data — personal profile, application history, screenshots
 data/
 node_modules/
-# CV PDFs are personal documents
+# CV PDFs are personal documents. The tailored ones live in a subdirectory,
+# which cv/*.pdf does not cover — 77 of them reached a public repo before
+# this was noticed.
+cv/**/*.pdf
 cv/*.pdf
+cv/tailored/
 
 # Real CV variants: full resume text and how claims are presented.
 # Copy cv-profiles.example.js -> cv-profiles.js and fill in locally.
