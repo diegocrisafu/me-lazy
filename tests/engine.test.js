@@ -397,7 +397,12 @@ const answers = require('../answers.js');
 test('identity and education questions resolve exactly', () => {
   const a = answers.defaultAnswers({ firstName: 'Diego', lastName: 'Crisafulli', email: 'd@x.com' });
   assert.equal(answers.answerFor('First Name', a).value, 'Diego');
-  assert.equal(answers.answerFor('What is your GPA?', a).status, 'unknown');
+  // 2.94 exactly, because a GPA is checkable against a transcript. The
+  // rounded forms are alternatives for controls that will not take two
+  // decimals, never the first thing offered.
+  const gpa = answers.answerFor('What is your GPA?', a);
+  assert.equal(gpa.value, '2.94');
+  assert.ok(gpa.alternatives.includes('3.0'));
   assert.equal(answers.answerFor('Email address', a).value, 'd@x.com');
 });
 

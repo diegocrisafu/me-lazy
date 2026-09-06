@@ -147,6 +147,13 @@ async function fillField(page, handle, info, answers, ctx) {
 
   const r = ANSWERS.answerFor(label, answers);
 
+  // Some answers are given only where the form insists. A mailing address is
+  // real personal data, and a form with an optional box for it does not need
+  // it — but a form that will not submit without one does.
+  if (r.whenRequired && !info.required) {
+    return null;
+  }
+
   if (r.status === 'exact') {
     if (info.tag === 'select') {
       const picked = await selectOption(handle, r.value);

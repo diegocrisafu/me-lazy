@@ -76,7 +76,11 @@ const ANSWER_RULES = [
   { id: 'fullName',   re: /full\s*(?:legal\s*)?name|legal\s*name|your\s*name|nom\s*complet|^name$/i, from: 'fullName' },
   { id: 'email',      re: /e-?mail|courriel/i, not: /confirm/i, from: 'email' },
   { id: 'phone',      re: /phone|mobile|cell|t[ée]l[ée]phone/i, from: 'phone' },
-  { id: 'address',    re: /street|address|adresse/i, not: /e-?mail/i, from: 'address' },
+  // Only filled where the form marks it required — see whenRequired in
+  // fillField. A mailing address is not something to hand over to every
+  // form that has a box for it.
+  { id: 'address', whenRequired: true,
+    re: /street|address|adresse/i, not: /e-?mail/i, from: 'address' },
   { id: 'city',       re: /\bcity\b|\bville\b|where\s*are\s*you\s*(?:currently\s*)?(?:located|based|living)|current\s*location|where\s*do\s*you\s*live/i, from: 'city' },
   // \bstate\b, not /state/ — otherwise "United States" matches here and the
   // work-authorisation question gets answered with a province.
@@ -305,9 +309,12 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     fullName: `${first} ${last}`.trim(),
     email: profile.email || '',
     phone: profile.phone || '',
-    address: profile.address || '',
+    address: profile.address || '3680 rue de Loreto',
     city: profile.city || 'Montreal',
     province: profile.province || 'Quebec',
+    // Deliberately no fallback. I had this as H3A0G4, which is downtown
+    // Montreal and not where you live — a postal code is checkable and
+    // wrong-by-invention is worse than blank.
     postalCode: profile.postalCode || '',
     country: profile.country || 'Canada',
     linkedin: profile.linkedin || '',
@@ -323,7 +330,11 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     // screen on, so an invented one is either a false claim or a needlessly
     // weak one. Blank blocks the handful of forms that ask, which surfaces
     // it as a question rather than guessing on your behalf.
-    gpa: cvFacts.gpa || profile.gpa || '',
+    // 2.94 on Concordia's 4.3 scale. The exact figure first, because it is
+    // checkable against a transcript; the rounded and one-decimal forms are
+    // offered only for controls that will not take two decimals or that ask
+    // for a band, where 2.94 lands correctly either way.
+    gpa: cvFacts.gpa || profile.gpa || ['2.94', '2.9', '3.0'],
     // Graduation menus phrase this every possible way: a month and year, a
     // bare year, or a bracket like "Prior to December 2026". Offer all three
     // shapes so whichever the form uses, one of them scores a match.
@@ -504,6 +515,7 @@ function answerFor(question, answers = {}, opts = {}) {
     return { status: 'exact', ruleId: rule.id,
              value: Array.isArray(value) ? value[0] : String(value),
              alternatives: Array.isArray(value) ? value : null,
+             whenRequired: Boolean(rule.whenRequired),
              critical: Boolean(rule.critical) };
   }
 
