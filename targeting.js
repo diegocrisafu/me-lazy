@@ -34,13 +34,16 @@ const LEVEL_PATTERNS = {
   senior: [
     /\bsenior\b/i, /\bsr\.?\s/i, /\bstaff\b/i, /\bprincipal\b/i, /\blead\b/i,
     /\bmanager\b/i, /\bdirector\b/i, /\bhead\s*of\b/i, /\bvp\b/i, /\bchief\b/i,
-    /\barchitect\b/i, /\bIII\b/, /\bIV\b/, /\bL[4-9]\b/i
+    /\barchitect\b/i, /\bIII\b/, /\bIV\b/, /\bL[4-9]\b/i,
+    // The numeral forms of III and above. "Software Engineer 3" was reading
+    // as the stretch band because only the Roman numerals were listed.
+    /\bengineer\s*[3-9]\b/i, /\bdeveloper\s*[3-9]\b/i, /\b(?:level|lvl)\s*[4-9]\b/i
   ],
   // The stretch band. "Engineer II", "Engineer 2", "Intermediate" — one rung
   // above new grad, which is where the title and the money start moving and
   // which a five-internship record actually answers.
   mid: [
-    /\bII\b/, /\b2\b(?!\d)/, /\bL[23]\b/i, /\bintermediate\b/i,
+    /\bII\b/, /\bengineer\s*2\b/i, /\bdeveloper\s*2\b/i, /\bL[23]\b/i, /\bintermediate\b/i,
     /\bmid[-\s]?level\b/i, /\bassociate\s+(?:software|developer|engineer)/i
   ]
 };
