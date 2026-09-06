@@ -120,6 +120,9 @@ const ANSWER_RULES = [
   { id: 'salary', critical: true,
     re: /salary\s*expectation|expected\s*(?:salary|compensation|pay)|desired\s*(?:salary|pay|compensation)|pr[ée]tentions|what\s*(?:annual\s*)?salary|annual\s*salary|compensation\s*expectation|base\s*salary\s*(?:expectation|requirement)|what.{0,24}(?:salary|compensation).{0,40}(?:expect|looking|seeking|excited)/i,
     from: 'salaryExpectation' },
+  { id: 'salaryRangeAck',
+    re: /(?:reviewed|read|seen)[^?]{0,40}(?:salary|compensation|pay)\s*range|salary\s*range[^?]{0,50}(?:aligned|align|acceptable|comfortable|agree|expectations)|are\s*(?:you|your\s*expectations)[^?]{0,40}aligned[^?]{0,30}range/i,
+    from: 'salaryRangeAck' },
   { id: 'noticePeriod', re: /notice\s*period|pr[ée]avis/i, from: 'noticePeriod' },
   { id: 'priorApplication', re: /previously\s*(?:applied|worked)|former\s*employee|d[ée]j[àa]\s*postul/i, from: 'previouslyApplied' },
   { id: 'referral', re: /how\s*did\s*you\s*(?:hear|learn|find|come\s*to\s*know)|how\s*(?:did|do)\s*you\s*(?:hear|learn)\s*about|referred\s*by|source|r[ée]f[ée]rence|where\s*did\s*you\s*(?:hear|find)/i, from: 'referralSource' },
@@ -207,7 +210,7 @@ const ANSWER_RULES = [
     re: /cover\s*letter|lettre\s*de\s*motivation|additional\s*information|anything\s*else/i },
   { id: 'strengths', longform: true,
     not: /race|ethnic|gender|orientation|disab|veteran|demographic/i,
-    re: /greatest\s*strength|tell\s*us\s*about\s*yourself|describe\s*yourself|why\s*(?:do\s*you\s*think\s*)?(?:are\s*)?you[^?]{0,30}\b(?:good\s*fit|right\s*fit|a\s*fit|right\s*(?:person|candidate))\b|what\s*makes\s*you[^?]{0,40}(?:candidate|fit)/i },
+    re: /greatest\s*strength|tell\s*us\s*(?:something\s*)?about\s*yourself|describe\s*yourself|tell\s*us\s*something[^?]{0,60}(?:resume|r[ée]sum[ée]|cv)\b|(?:not|n't)\s*(?:find\s*)?on\s*(?:your\s*)?(?:resume|r[ée]sum[ée]|cv)\b|why\s*(?:do\s*you\s*think\s*)?(?:are\s*)?you[^?]{0,30}\b(?:good\s*fit|right\s*fit|a\s*fit|right\s*(?:person|candidate))\b|what\s*makes\s*you[^?]{0,40}(?:candidate|fit)/i },
   { id: 'project', longform: true,
     re: /(?:favourite|favorite|interesting|challenging|recent|significant)\b[^?]{0,30}\bproject\b|describe\s*(?:a|your)[^?]{0,40}\bproject\b|proud\s*of|technical\s*challenge|describe\s*your\s*experience\s*(?:working\s*)?(?:with|in|on)\b|tell\s*us\s*about\s*(?:a|your)\s*(?:time|experience)/i },
 
@@ -411,6 +414,9 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
        'Core Development', 'Software', 'Development', 'Quantitative Development',
        'Quantitative Research', 'Any', 'No preference'],
     militaryService: profile.militaryService || 'No',
+    // You are applying to the posting, and your expectation sits inside the
+    // ranges this question is asked about.
+    salaryRangeAck: profile.salaryRangeAck || 'Yes',
     // One citizenship, living in the country that issued it.
     otherResidency: profile.otherResidency || 'No',
     currentEmployer: profile.currentEmployer || 'McKesson',
