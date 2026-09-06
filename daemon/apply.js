@@ -560,6 +560,149 @@ async function setChoice(page, handle, label, value) {
    all — so neither the per-input pass nor a naive required-field scan sees
    it. Both have to treat the group as a single unit. */
 
+/* ─────────── button groups ───────────
+   Ashby renders every yes/no and multiple-choice question as a row of
+   <button aria-pressed="false">, not as inputs. Both the filler and the
+   empty-field check only ever looked at input/select/textarea, so these
+   questions were invisible to both: never answered, and never reported as
+   missing. A Synthesia application went out with both work-authorisation
+   questions blank and was recorded as submitted.
+
+   Every Ashby employer is affected, which is most of the newer companies
+   on the list. */
+
+async function readButtonGroups(page) {
+  return page.evaluate(() => {
+    const clean = s => (s || '').replace(/\s+/g, ' ').trim();
+
+    // A choice button: renders as a button, carries a pressed/checked state.
+    const isChoice = el =>
+      (el.tagName === 'BUTTON' || el.getAttribute('role') === 'radio' ||
+       el.getAttribute('role') === 'checkbox') &&
+      (el.hasAttribute('aria-pressed') || el.hasAttribute('aria-checked')) &&
+      // getAttribute, not .type: a <button> with no type attribute reports
+      // type "submit", which excluded every choice button on the page.
+      el.getAttribute('type') !== 'submit' &&
+      clean(el.textContent).length > 0 && clean(el.textContent).length < 80;
+
+    const buttons = [...document.querySelectorAll('button, [role="radio"], [role="checkbox"]')]
+      .filter(isChoice)
+      .filter(el => el.offsetParent || el.getClientRects().length);
+
+    // Siblings under one parent are one question.
+    const groups = new Map();
+    for (const el of buttons) {
+      const parent = el.parentElement;
+      if (!parent) continue;
+      if (!groups.has(parent)) groups.set(parent, []);
+      groups.get(parent).push(el);
+    }
+
+    const out = [];
+    let gi = 0;
+    for (const [parent, els] of groups) {
+      if (els.length < 2) continue;           // a lone button is not a question
+
+      // The question is the nearest text above the group that is not one of
+      // the options themselves.
+      let question = '';
+      let node = parent;
+      for (let i = 0; i < 5 && node && !question; i++, node = node.parentElement) {
+        const own = [...node.childNodes]
+          .filter(n => n.nodeType === 3 || (n.nodeType === 1 && !n.contains(els[0])))
+          .map(n => clean(n.textContent)).filter(Boolean).join(' ');
+        if (own && own.length > 6) question = own;
+        const lab = node.querySelector('label, legend, [class*="label"], [class*="Label"]');
+        if (!question && lab && !lab.contains(els[0])) question = clean(lab.textContent);
+      }
+      if (!question) continue;
+
+      // Mark them so they can be clicked without re-deriving the structure.
+      els.forEach((el, i) => el.setAttribute('data-acc-btn', `${gi}:${i}`));
+      out.push({
+        gi,
+        question,
+        // Ashby puts the required marker in its own element, so it is not in
+        // the question text — look for it in the surrounding block instead.
+        required: /[*✱]/.test(question) ||
+                  parent.closest('[aria-required="true"], [data-required="true"]') !== null ||
+                  /[*✱]/.test(clean((parent.closest('div, fieldset, section') || parent).textContent || '')
+                    .replace(clean(els.map(e => e.textContent).join(' ')), '')),
+        answered: els.some(e => e.getAttribute('aria-pressed') === 'true' ||
+                                e.getAttribute('aria-checked') === 'true'),
+        options: els.map(e => clean(e.textContent))
+      });
+      gi++;
+    }
+    return out;
+  }).catch(() => []);
+}
+
+async function fillButtonGroups(page, answers, ctx) {
+  const groups = await readButtonGroups(page);
+  const filled = [];
+
+  for (const g of groups) {
+    if (g.answered || !g.question) continue;
+
+    const r = ANSWERS.answerFor(g.question, answers);
+    let want = null;
+    if (r.status === 'exact') want = r.alternatives || [r.value];
+    else if (r.status === 'consent') want = ['Yes', 'I agree', 'I accept', 'I acknowledge'];
+    else if (r.status === 'demographic') want = r.decline;
+    else {
+      const guess = RESOLVER.resolve(g.question, g.options, answers);
+      if (guess) want = [guess.value];
+    }
+    if (!want) {
+      if (g.required) ctx.skipped.push({ label: g.question,
+        reason: `no answer for a button group (offers: ${g.options.slice(0, 4).join(', ')})`,
+        critical: Boolean(r.critical) });
+      continue;
+    }
+
+    let idx = -1;
+    for (const candidate of want) {
+      for (let i = 0; i < g.options.length; i++) {
+        if (optionScore(g.options[i], candidate) >= 40) { idx = i; break; }
+      }
+      if (idx >= 0) break;
+    }
+    if (idx < 0) {
+      const ranged = RESOLVER.matchRange(want[0], g.options);
+      if (ranged >= 0) idx = ranged;
+    }
+    if (idx < 0) {
+      if (g.required) ctx.skipped.push({ label: g.question,
+        reason: `no option matched "${want[0]}" (offers: ${g.options.slice(0, 4).join(', ')})`,
+        critical: Boolean(r.critical) });
+      continue;
+    }
+
+    await page.evaluate(([gi, i]) => {
+      const el = document.querySelector(`[data-acc-btn="${gi}:${i}"]`);
+      if (el) { el.scrollIntoView({ block: 'center' }); el.click(); }
+    }, [g.gi, idx]).catch(() => {});
+
+    // React updates the pressed state a tick after the click, so the result
+    // is read back rather than checked synchronously.
+    await page.waitForTimeout(250);
+    const ok = await page.evaluate(([gi, i]) => {
+      const el = document.querySelector(`[data-acc-btn="${gi}:${i}"]`);
+      if (!el) return false;
+      return el.getAttribute('aria-pressed') === 'true' ||
+             el.getAttribute('aria-checked') === 'true' ||
+             /selected|active|checked/i.test(el.className || '');
+    }, [g.gi, idx]).catch(() => false);
+
+    if (ok) filled.push({ field: r.ruleId || 'resolved', label: g.question,
+                          value: g.options[idx], kind: 'button' });
+    else if (g.required) ctx.skipped.push({ label: g.question,
+      reason: 'clicked the option but it did not register', critical: true });
+  }
+  return filled;
+}
+
 async function fillChoiceGroups(page, answers, ctx) {
   const groups = await page.evaluate(() => {
     /* The label that belongs to this group, and only this group. Climbing
@@ -936,6 +1079,12 @@ async function visibleFieldCount(page) {
 async function openForm(page, record) {
   const url = record.applyUrl || record.url;
   await page.goto(url, { waitUntil: 'domcontentloaded' });
+
+  // Ashby and a few others render the form from JavaScript after the
+  // document is ready. A fixed 1.5s was enough for the inputs but not for
+  // the button-based questions, which meant a form could be filled and
+  // submitted before its yes/no questions existed.
+  await page.waitForSelector('input, textarea, select', { timeout: 12000 }).catch(() => {});
   await page.waitForTimeout(1500);
 
   await dismissOverlays(page);
@@ -1056,6 +1205,13 @@ async function applyTo(ctxBrowser, record, opts = {}) {
       if (!filled.some(f => f.label === g.label)) filled.push(g);
     }
 
+    // Ashby's yes/no questions are buttons, not inputs, so they need their
+    // own pass — without it they are neither answered nor noticed.
+    await page.waitForTimeout(1200);
+    for (const g of await fillButtonGroups(page, answers, ctx)) {
+      if (!filled.some(f => f.label === g.label)) filled.push(g);
+    }
+
     const files = await attachFiles(page, record, ctx);
 
     // Uploading a résumé makes Greenhouse re-parse it into the form, and a
@@ -1089,6 +1245,14 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     // Required fields the form still considers empty. This is the check that
     // catches a filler which reported success but left the form blank.
     let empties = await readEmpties(page);
+
+    // A required button group with nothing pressed is an empty required
+    // field. It was not in readEmpties because that only walks inputs, which
+    // is how a form went out with both work-authorisation questions blank.
+    for (const g of await readButtonGroups(page)) {
+      if (g.required && !g.answered) empties.push(g.question);
+    }
+    empties = [...new Set(empties)];
     ctx.requiredStillEmpty = empties;
 
     // Evidence before any irreversible action.
@@ -1185,4 +1349,5 @@ async function confirmSubmitted(page) {
   return !stillForm;
 }
 
-module.exports = { applyTo, labelFor, findSubmit, confirmSubmitted, CV_DIR };
+module.exports = { applyTo, labelFor, findSubmit, confirmSubmitted,
+                   readButtonGroups, fillButtonGroups, openForm, CV_DIR };

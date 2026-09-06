@@ -806,3 +806,28 @@ test('familiarity with the company answers the middle, never the top', () => {
     'Before seeing this job posting, how familiar were you with Faire as a company?', opts, a);
   assert.equal(r.value, 'Somewhat familiar');
 });
+
+test('"authorised to work without sponsorship" is not the sponsorship question', () => {
+  // The sponsorship rule matched this on the word "sponsorship" and answered
+  // "No" — which tells the employer you are not allowed to work there. It is
+  // the worst wrong answer on a form, and it went out on every Ashby
+  // application, where these render as buttons nobody was checking.
+  const q = 'Are you legally authorised to work in the country you wish to work ' +
+            'in without the need for visa sponsorship?';
+
+  const profile = { workAuthCanada: 'Yes', workAuthUS: 'No', citizenship: 'Canadian citizen',
+                    sponsorshipCanada: 'No', sponsorshipUS: 'Yes' };
+  const ca = answers.defaultAnswers(profile, {}, { region: 'CA' });
+  assert.equal(answers.answerFor(q, ca).ruleId, 'workAuthNoSponsorship');
+  assert.equal(answers.answerFor(q, ca).value, 'Yes');
+
+  // In the US the honest answer is No — TN status is still employer support.
+  const us = answers.defaultAnswers(profile, {}, { region: 'US' });
+  assert.equal(answers.answerFor(q, us).value, 'No');
+
+  // The plain sponsorship question keeps its own, opposite answer.
+  const plain = 'Do you require ongoing employer support to maintain your right to work?';
+  assert.equal(answers.answerFor(plain, ca).ruleId, 'sponsorship');
+  assert.equal(answers.answerFor(plain, ca).value, 'No');
+  assert.equal(answers.answerFor(plain, us).value, 'Yes');
+});

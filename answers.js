@@ -23,8 +23,19 @@ const ANSWER_RULES = [
      rule instead answers "Yes, I am authorised", which the form reads as
      "Yes, I need sponsorship". That is an instant auto-reject. */
 
+  /* "Are you authorised to work WITHOUT needing sponsorship?" is the
+     sponsorship question inverted, and it has to be answered inverted. The
+     sponsorship rule matched it on the word "sponsorship" and answered "No"
+     — which tells the employer you are not allowed to work there. It is the
+     single worst wrong answer on a form, and it went out on every Ashby
+     application. This rule has to come first, and its regex is longer, so
+     longest-match keeps it first regardless of order. */
+  { id: 'workAuthNoSponsorship', critical: true,
+    re: /(?:authoriz|authoris|eligible|entitled|permitted|able)\w*\s*to\s*work[^?]{0,80}without[^?]{0,40}(?:sponsor|visa|work\s*permit)|do\s*not\s*(?:require|need)[^?]{0,30}sponsor\w*[^?]{0,30}to\s*work/i,
+    from: 'workAuthNoSponsorship' },
+
   { id: 'sponsorship', critical: true,
-    re: /sponsor|visa\s*support|immigration\s*(?:support|assistance)|parrainage|work\s*permit\s*support/i,
+    re: /sponsor|visa\s*support|immigration\s*(?:support|assistance)|parrainage|work\s*permit\s*support|(?:ongoing\s*)?employer\s*(?:support|assistance)[^?]{0,50}right\s*to\s*work|require[^?]{0,40}employer\s*(?:support|sponsorship)/i,
     from: 'sponsorship' },
 
   { id: 'workAuthCA',  critical: true,
@@ -414,6 +425,10 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
        'Core Development', 'Software', 'Development', 'Quantitative Development',
        'Quantitative Research', 'Any', 'No preference'],
     militaryService: profile.militaryService || 'No',
+    // The inverse of `sponsorship`: authorised without needing it. In Canada
+    // that is Yes for a citizen; in the US it is No, because TN status is
+    // still employer support.
+    workAuthNoSponsorship: (ctx.region === 'US') ? 'No' : 'Yes',
     // You are applying to the posting, and your expectation sits inside the
     // ranges this question is asked about.
     salaryRangeAck: profile.salaryRangeAck || 'Yes',
