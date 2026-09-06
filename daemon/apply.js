@@ -1395,9 +1395,21 @@ async function confirmSubmitted(page) {
     return 'challenge';
   }
   const positive = /thank you|application (?:has been )?(?:submitted|received|sent)|we(?:'ve| have) received|submission (?:received|successful)|merci|candidature (?:re[çc]ue|envoy[ée]e)/i;
-  const stillForm = await page.$('input[type="file"], button:has-text("Submit")');
   if (positive.test(text)) return true;
-  // A form that vanished is the other reliable signal.
+
+  // "The form is gone" was the fallback signal, and it is not safe on a site
+  // that navigates rather than confirming. Three Amazon applications were
+  // recorded as sent when the click had landed on the job search page: no
+  // form there either, so the absence read as success. A page that is
+  // plainly somewhere else is not a confirmation.
+  const wentElsewhere = await page.evaluate(() => {
+    const t = (document.body.innerText || '').slice(0, 1500);
+    return /search results|results listed|filter by|browse jobs|job categories/i.test(t) ||
+           /\/search|\/jobs\/?$|\/careers\/?$/.test(location.pathname);
+  }).catch(() => false);
+  if (wentElsewhere) return false;
+
+  const stillForm = await page.$('input[type="file"], button:has-text("Submit")');
   return !stillForm;
 }
 

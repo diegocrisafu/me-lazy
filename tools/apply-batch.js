@@ -129,10 +129,9 @@ function ranker(job) {
                                  { family: job.family, level: job.level });
 
     const rec = { ...job, cvFile };
-    const applyCtx = await browser.launch({ headless: true });
     let result;
     try {
-      result = await applyTo(applyCtx, rec, {
+      result = await applyTo(ctx, rec, {
         settings, dryRun: false,
         coverLetter: letter?.text || null,
         cvFacts: cvProfile.facts || {}
@@ -140,7 +139,6 @@ function ranker(job) {
     } catch (e) {
       result = { submitted: false, blocked: 'threw: ' + e.message.slice(0, 60), filled: [] };
     }
-    await applyCtx.close().catch(() => {});
 
     const live = apps[job.id];
     if (live) {
@@ -165,6 +163,8 @@ function ranker(job) {
       }
       store.saveApplications(apps);
     }
+
+    await new Promise(r => setTimeout(r, 4000 + Math.random() * 6000));
 
     if (result.submitted) {
       sent++;
