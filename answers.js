@@ -136,6 +136,18 @@ const ANSWER_RULES = [
     re: /(?:what|which)[^?]{0,30}\bai\b[^?]{0,40}(?:technolog|tools?|frameworks?|stack)|ai[- ]specific\s*technolog|(?:genai|llm)[^?]{0,30}(?:tools?|technolog|experience\s*with)/i,
     from: 'aiTechnologies' },
 
+  /* A preferred or chosen name, which is the first name unless you say
+     otherwise. */
+  { id: 'preferredName',
+    re: /preferred\s*(?:first\s*)?name|chosen\s*name|(?:what\s*)?name\s*(?:do\s*you\s*)?(?:go\s*by|prefer)/i,
+    from: 'firstName' },
+
+  /* Recruiting SMS and WhatsApp opt-ins. Yes: a recruiter who can text you
+     reaches you the same day rather than in three. */
+  { id: 'smsOptIn',
+    re: /receive\s*(?:communications|messages|texts?|updates?)[^?]{0,50}(?:sms|text|whatsapp)|(?:sms|text\s*message|whatsapp)[^?]{0,40}(?:updates?|notifications?|communications?)|opt[- ]?in[^?]{0,30}(?:sms|text)/i,
+    from: 'smsOptIn' },
+
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
 /* ── Location and logistics the blocked list surfaced ── */
@@ -266,7 +278,7 @@ const ANSWER_RULES = [
     from: 'readyFullTime' },
   { id: 'department', re: /which\s*(?:department|team|desk|group|area)|most\s*interested\s*in|preferred\s*(?:team|department)/i,
     from: 'preferredDepartment' },
-  { id: 'militaryService', re: /served\s*in\s*the\s*military|military\s*(?:service|status|experience)|armed\s*forces|protected\s*veteran/i,
+  { id: 'militaryService', re: /served\s*in\s*the\s*military|military\s*(?:service|status|experience)|armed\s*forces/i,
     from: 'militaryService' },
   { id: 'currentEmployer', re: /current\s*(?:employer|company)|present\s*employer|company\s*name|employer\s*name|most\s*recent\s*(?:employer|company)/i,
     from: 'currentEmployer' },
@@ -326,7 +338,7 @@ const ANSWER_RULES = [
      the form is built to accept. ── */
   { id: 'gender',     demographic: true, re: /gender|genre|sex\b/i },
   { id: 'race',       demographic: true, re: /race|ethnic|visible\s*minorit|hispanic|latino|latinx/i },
-  { id: 'veteran',    demographic: true, re: /veteran|militaire/i },
+  { id: 'veteran',    demographic: true, re: /veteran\s*status|protected\s*veteran|veteran|militaire/i },
   { id: 'disability', demographic: true, re: /disab|handicap/i },
   { id: 'indigenous', demographic: true, re: /indigenous|aboriginal|autochtone|first\s*nations/i },
   /* Being shared with an employer's partner or talent network is opt-in and
@@ -515,6 +527,7 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     jobStartYear: profile.jobStartYear || '2026',
     jobEndMonth: profile.jobEndMonth || '',
     jobEndYear: profile.jobEndYear || '',
+    smsOptIn: profile.smsOptIn || 'Yes',
     over18: profile.over18 || 'Yes',
 
     relocate: profile.relocate || 'Yes',
