@@ -124,6 +124,18 @@ const ANSWER_RULES = [
     re: /which\s*(?:one|office|location)[^?]{0,60}(?:interested\s*in\s*working|prefer|based)|locations?\s*listed\s*on\s*the\s*job\s*posting|preferred\s*office/i,
     from: 'preferredLocation' },
 
+  /* "Are you currently a <Company> employee?" — the present-tense form of
+     having worked there. */
+  { id: 'currentEmployeeHere',
+    re: /are\s*you\s*(?:currently\s*)?an?\s*(?:current\s*)?[\w& .'-]{2,26}\s*employee\b|currently\s*employed\s*(?:by|at)\s*[\w& .'-]{2,26}\s*\??/i,
+    from: 'currentEmployeeHere' },
+
+  /* "What AI technologies are you comfortable with?" — a list question, not
+     a scale and not prose. */
+  { id: 'aiTechnologies',
+    re: /(?:what|which)[^?]{0,30}\bai\b[^?]{0,40}(?:technolog|tools?|frameworks?|stack)|ai[- ]specific\s*technolog|(?:genai|llm)[^?]{0,30}(?:tools?|technolog|experience\s*with)/i,
+    from: 'aiTechnologies' },
+
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
 /* ── Location and logistics the blocked list surfaced ── */
@@ -471,6 +483,12 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     noSchoolEmailReason: profile.noSchoolEmailReason ||
       'My Concordia address is no longer my primary contact as I finish my degree; ' +
       'I check the personal address above daily.',
+    currentEmployeeHere: profile.currentEmployeeHere || 'No',
+    aiTechnologies: profile.aiTechnologies ||
+      'LLM APIs (OpenAI, Anthropic) in production Python and .NET services, ' +
+      'retrieval-augmented generation over an unstructured video and transcript corpus, ' +
+      'semantic search and embeddings, prompt design and evaluation, and machine-learning ' +
+      'point-cloud workflows from the NVIDIA research collaboration at Presagis.',
     over18: profile.over18 || 'Yes',
 
     relocate: profile.relocate || 'Yes',
