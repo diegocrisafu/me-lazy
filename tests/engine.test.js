@@ -705,10 +705,15 @@ test('a skill scale is answered from the CV, never above it', () => {
   assert.equal(resolver.matchScale('How familiar are you with Python?', scale, a), 'Intermediate');
   assert.equal(resolver.matchScale('My experience with C++ is as follows:', scale, a), 'Intermediate');
 
-  // Not on it: the weakest positive rung. Never advanced or expert, which
-  // the CV could not support.
-  const docker = resolver.matchScale('My experience with Docker is as follows:', scale, a);
-  assert.equal(docker, 'Beginner');
+  // Docker and AWS are on the résumé under Tools and Cloud, so they get the
+  // middle rung too — the matcher used to see only the languages line and
+  // understated both.
+  assert.equal(resolver.matchScale('My experience with Docker is as follows:', scale, a), 'Intermediate');
+
+  // Genuinely not on it: the weakest positive rung. Never advanced or
+  // expert, which the CV could not support.
+  assert.equal(resolver.matchScale('My experience with Kubernetes is as follows:', scale, a), 'Beginner');
+  assert.equal(resolver.matchScale('How familiar are you with Rust?', scale, a), 'Beginner');
 
   // A list that is not a scale is left alone.
   assert.equal(resolver.matchScale('My experience with Docker is as follows:', ['Yes', 'No'], a), null);
