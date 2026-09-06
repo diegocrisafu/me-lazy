@@ -34,8 +34,13 @@
     const level = classifyLevel(job.title, '');
     if (level === 'senior') return false;
     // 'unknown' survives here: many bank postings hide the level in the body,
-    // and we can afford one description fetch to find out.
-    return level === 'intern' || level === 'newgrad' || level === 'unknown';
+    // and we can afford one description fetch to find out. So does 'mid',
+    // which is what classifyLevel now returns for a plain "Software
+    // Engineer" seen without its description — leaving it out of this list
+    // rejected the entire ordinary engineering market at the cheap gate,
+    // before anything had a chance to read the posting.
+    return level === 'intern' || level === 'newgrad' ||
+           level === 'mid' || level === 'unknown';
   }
 
   function resolveSalary(job, rules) {
