@@ -78,7 +78,7 @@ const ANSWER_RULES = [
 
   /* Government-service screening, standard at defence-adjacent employers. */
   { id: 'governmentEmployee',
-    re: /(?:current\s*or\s*former\s*)?(?:civilian\s*or\s*military\s*)?employee\s*of\s*the\s*(?:united\s*states|u\.?s\.?)\s*government|federal\s*(?:government\s*)?employ(?:ee|ment)\b/i,
+    re: /(?:direct\s*)?employee\s*of\s*(?:the\s*)?(?:any\s*)?(?:united\s*states|u\.?s\.?|federal\s*)?\s*government(?:\s*entity)?|federal\s*(?:government\s*)?employ(?:ee|ment)\b|been\s*a\s*government\s*employee/i,
     from: 'governmentEmployee' },
   { id: 'postGovernmentRestrictions',
     re: /restrictions?\s*on\s*post[-\s]?government\s*employment|post[-\s]?government\s*employment\s*restrictions?/i,
@@ -158,6 +158,18 @@ const ANSWER_RULES = [
   { id: 'nonInternshipYears',
     re: /(?:total\s*)?non[-\s]?intern(?:ship)?\s*(?:professional\s*)?[^?]{0,90}experience|which\s*option\s*best\s*describes\s*your\s*total\s*non[-\s]?intern/i,
     from: 'nonInternshipYears' },
+
+  /* Background-check and export-control screening. Amazon asks all of these
+     on every posting, and they are facts about where you have lived rather
+     than judgement calls: Montreal throughout, one citizenship, no
+     sanctioned country. Left to inference, "have you lived outside Canada
+     for 12 consecutive months" was being answered yes. */
+  { id: 'livedAbroadLong',
+    re: /(?:lived|resided|physically\s*located)[^?]{0,60}outside\s*(?:of\s*)?(?:canada|the\s*(?:united\s*states|u\.?s\.?)|your\s*(?:home\s*)?country)[^?]{0,60}(?:\d+\s*(?:consecutive\s*)?months?|consecutive)/i,
+    from: 'livedAbroadLong' },
+  { id: 'sanctionedCountry',
+    re: /sanctioned\s*countr\w*|embargoed\s*(?:countr\w*|region)|(?:cuba|iran|north\s*korea|syria)[^?]{0,40}(?:region|countr)/i,
+    from: 'sanctionedCountry' },
 
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
@@ -250,7 +262,7 @@ const ANSWER_RULES = [
     from: 'salaryRangeAck' },
   { id: 'noticePeriod', re: /notice\s*period|pr[ée]avis/i, from: 'noticePeriod' },
   { id: 'priorApplication', re: /previously\s*(?:applied|worked)|former\s*employee|d[ée]j[àa]\s*postul/i, from: 'previouslyApplied' },
-  { id: 'referral', re: /how\s*did\s*you\s*(?:hear|learn|find|come\s*to\s*know)|how\s*(?:did|do)\s*you\s*(?:hear|learn)\s*about|referred\s*by|source|r[ée]f[ée]rence|where\s*did\s*you\s*(?:hear|find)/i, from: 'referralSource' },
+  { id: 'referral', re: /how\s*did\s*you\s*(?:hear|learn|find|come\s*to\s*know)|how\s*(?:did|do)\s*you\s*(?:hear|learn)\s*about|referred\s*by|\bsource\b|\br[ée]f[ée]rence\b|where\s*did\s*you\s*(?:hear|find)/i, from: 'referralSource' },
 
 
   /* ── Common employer-specific questions ──
@@ -354,6 +366,13 @@ const ANSWER_RULES = [
   { id: 'indigenous', demographic: true, re: /indigenous|aboriginal|autochtone|first\s*nations/i },
   /* Being shared with an employer's partner or talent network is opt-in and
      only widens where the application is seen. */
+  /* Amazon's data-use consent, whose two options are the question. Yes
+     means personalised recommendations and being put in front of recruiters;
+     no means continuing without. Being recommended to recruiters is the
+     point of applying. */
+  { id: 'recruiterDataConsent', consent: true,
+    re: /consent[- ]?choice|personalized\s*job\s*recommendations|recommend\s*me\s*to\s*recruiters|improve\s*job[- ]?search\s*tools|transcribe\s*my\s*interviews/i },
+
   { id: 'shareWithPartners', consent: true,
     re: /share\s*my\s*(?:resume|r[ée]sum[ée]|profile|contact\s*information)[^?]{0,70}(?:partners?|network|affiliates?|third\s*part)|talent\s*(?:network|community)|consider\s*me\s*for\s*other\s*(?:roles|positions|opportunities)/i },
   { id: 'policyConsent', consent: true,
@@ -542,6 +561,8 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     // Two weeks of contract work. Everything before it was an internship,
     // which is exactly what these questions exclude.
     nonInternshipYears: profile.nonInternshipYears || '0',
+    livedAbroadLong: profile.livedAbroadLong || 'No',
+    sanctionedCountry: profile.sanctionedCountry || 'No',
     over18: profile.over18 || 'Yes',
 
     relocate: profile.relocate || 'Yes',

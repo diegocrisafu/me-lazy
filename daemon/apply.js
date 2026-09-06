@@ -37,12 +37,29 @@ async function surveyFields(page) {
   return page.evaluate(() => {
     const clean = s => (s || '').replace(/\s+/g, ' ').trim();
 
-    function labelOf(el) {
-      if (el.id) {
-        const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
-        if (l && clean(l.textContent)) return clean(l.textContent);
-      }
-      // A container that calls itself the question. Amazon wraps each one in
+    /* One question, not the whole block. Amazon repeats its text and
+       appends a FAQ paragraph; the first sentence is the question. */
+    function firstSentence(t) {
+      const cut = t.replace(/\s+/g, ' ').trim();
+      const m = cut.match(/^.{10,220}?[?.](?=\s|$)/);
+      return (m ? m[0] : cut.slice(0, 220)).trim();
+    }
+
+    /* Amazon labels a select with its own option list, so the ordinary label
+       is useless there and useful nearly everywhere else. Reaching for the
+       question container first overrode good labels — Point72's "which
+       office" became "have you previously applied". So: ordinary label
+       first, and only fall back when it turns out to be the options. */
+    function looksLikeOwnOptions(el, text) {
+      if (el.tagName !== 'SELECT' || !text) return false;
+      const opts = [...el.options].map(o => clean(o.textContent)).filter(Boolean);
+      if (opts.length < 2) return false;
+      const hit = opts.filter(o => o.length > 2 && text.includes(o)).length;
+      return hit >= Math.max(2, Math.ceil(opts.length * 0.6));
+    }
+
+    function questionContainerLabel(el) {
+      // The container that names the question. Amazon wraps each one in
       // <div class="question"> and gives the select a label that is just its
       // own option list, so every question read as "Select an option".
       // Strictly the question container first. Falling back to form-group in
@@ -61,7 +78,10 @@ async function surveyFields(page) {
           .map(n => n.textContent).join(' '))
           .replace(/\bQuestion\b\s*/gi, '').trim();
         if (/progress will be auto-?saved|job-specific questions|required fields?/i.test(t)) continue;
-        if (t && t.length > 10 && t.length < 400) return t.slice(0, 220);
+        // Long is normal: Amazon repeats the question and appends its FAQ,
+        // running to nine hundred characters. Take the first sentence rather
+        // than rejecting it for length.
+        if (t && t.length > 10) return firstSentence(t);
       }
 
 
@@ -73,6 +93,23 @@ async function surveyFields(page) {
       if (by) {
         const t = by.split(/\s+/).map(id => document.getElementById(id)?.textContent || '').join(' ');
         if (clean(t)) return clean(t);
+      }
+      return '';
+    }
+
+    function labelOf(el) {
+      if (el.id) {
+        const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+        const t = clean(l && l.textContent);
+        if (t && !looksLikeOwnOptions(el, t)) return t;
+      }
+      {
+        const own = el.closest('label');
+        const t = clean(own && own.textContent);
+        if (t && looksLikeOwnOptions(el, t)) {
+          const q = questionContainerLabel(el);
+          if (q) return q;
+        }
       }
       let node = el.parentElement;
       for (let i = 0; i < 4 && node; i++, node = node.parentElement) {
@@ -759,8 +796,18 @@ async function fillChoiceGroups(page, answers, ctx) {
        past the first ancestor that also holds other questions is how a
        consent checkbox ends up labelled "First Name*". Duplicated in the two
        page.evaluate bodies because each runs in its own page context. */
+      /* One question, not the whole block. Amazon repeats its text and
+         appends a FAQ paragraph; the first sentence is the question. */
+      function firstSentence(t) {
+        const cut = t.replace(/\s+/g, ' ').trim();
+        const m = cut.match(/^.{10,220}?[?.](?=\s|$)/);
+        return (m ? m[0] : cut.slice(0, 220)).trim();
+      }
+
     function groupLabel(first, els, clean) {
       const mine = new Set(els);
+
+
       let node = first.closest('fieldset, [class*="field"], [class*="question"], div');
       for (let i = 0; i < 5 && node; i++, node = node.parentElement) {
         const inputs = [...node.querySelectorAll('input, select, textarea')]
@@ -809,13 +856,52 @@ async function fillChoiceGroups(page, answers, ctx) {
         if (t && t.length < 120) question = t;
       }
 
+      // Only when the walk above produced one of the group's own option
+      // labels — "No, I was NEVER a government employee." as the question —
+      // is the question container worth reaching for. Doing it first
+      // overrode labels that were already correct.
+      if (question) {
+        const optionText = els.map(e => {
+          const l = e.closest('label') ||
+            (e.id ? document.querySelector(`label[for="${CSS.escape(e.id)}"]`) : null);
+          return clean(l && l.textContent);
+        }).filter(Boolean);
+        // Or when it is merely one of the options rather than exactly equal —
+        // whitespace and trailing markers differ — which is still a label
+        // naming a choice rather than the question.
+        if (optionText.some(t => t && (t === question || t.startsWith(question) ||
+                                       question.startsWith(t)))) {
+          const qc = first.closest('[class*="question" i]');
+          if (qc) {
+            // els, not mine — mine is a local of groupLabel, and referencing
+            // it here threw inside page.evaluate, which the catch turned into
+            // "no choice groups on this form" for every employer.
+            const t = clean([...qc.childNodes]
+              .filter(n => !(n.nodeType === 1 && els.some(m => n.contains(m))))
+              .map(n => n.textContent).join(' '))
+              .replace(/\bQuestion\b\s*/gi, '').trim();
+            if (t && t.length > 10) question = firstSentence(t);
+          }
+        }
+      }
+
+      // Unlabelled consent controls still have their field name, which is
+      // often descriptive — consent-choice, gdpr_..._consent_given. Dropping
+      // this fallback made those groups silently invisible: no question, so
+      // no attempt and no skip recorded either.
+      if (!question) question = String(name || '').replace(/[_\[\]-]+/g, ' ').trim();
+
       const options = els.map(el => {
         const own = el.closest('label');
         const forLab = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null;
-        return { value: el.value, text: clean((own || forLab)?.textContent || el.value) };
+        return { value: el.value, id: el.id || '',
+                 text: clean((own || forLab)?.textContent || el.value) };
       });
-      const required = els.some(e => e.required || e.getAttribute('aria-required') === 'true')
-        || /\*/.test(question);
+      const required = (els.some(e => e.required || e.getAttribute('aria-required') === 'true')
+        || /\*/.test(question))
+        // A block that calls itself optional is not required, whatever the
+        // markup says. "(Optional) Personal Preferences" was blocking a form.
+        && !/\(\s*optional\s*\)|\boptional\b/i.test(question);
       const answered = els.some(e => e.checked);
       const kind = els[0].type;
       // A lone consent checkbox is not a multiple-choice question.
@@ -873,6 +959,27 @@ async function fillChoiceGroups(page, answers, ctx) {
       }
       if (picked) break;
     }
+
+    // An option whose label runs the answer straight into its explanation —
+    // Amazon's "YesProvide personalized job recommendations..." — scores
+    // nothing against "Yes" but plainly begins with it.
+    if (!picked) {
+      for (const candidate of want) {
+        const want_ = String(candidate).trim();
+        if (!/^(yes|no)$/i.test(want_)) continue;
+        const hit = g.options.find(o => {
+          const t = o.text.trim();
+          if (t.slice(0, want_.length).toLowerCase() !== want_.toLowerCase()) return false;
+          // The next character must not continue the word, or "No" would
+          // match "Nothing". Checked on the original text: under a
+          // case-insensitive regex, [a-z] matches capitals too, which is
+          // why the lookahead this replaces rejected "YesProvide...".
+          const next = t.charAt(want_.length);
+          return next === '' || !/[a-z]/.test(next);
+        });
+        if (hit) { picked = hit; break; }
+      }
+    }
     if (!picked) {
       const guess = RESOLVER.resolve(g.question, g.options.map(o => o.text), answers);
       if (guess) picked = g.options.find(o => o.text === guess.value) || null;
@@ -883,13 +990,16 @@ async function fillChoiceGroups(page, answers, ctx) {
       continue;
     }
 
-    const ok = await page.evaluate(([name, value]) => {
-      const el = document.querySelector(
+    // By id where there is one, because value does not always distinguish
+    // the options: Amazon's consent radios are both value="on", so selecting
+    // on name and value always picked whichever came first.
+    const ok = await page.evaluate(([name, value, id]) => {
+      const el = (id && document.getElementById(id)) || document.querySelector(
         `input[name="${CSS.escape(name)}"][value="${CSS.escape(value)}"]`);
       if (!el) return false;
       if (!el.checked) el.click();
       return el.checked;
-    }, [g.name, picked.value]).catch(() => false);
+    }, [g.name, picked.value, picked.id || '']).catch(() => false);
 
     if (ok) filled.push({ field: g.kind, label: g.question, value: picked.text, kind: g.kind });
   }
@@ -905,8 +1015,30 @@ async function readEmpties(page) {
        past the first ancestor that also holds other questions is how a
        consent checkbox ends up labelled "First Name*". Duplicated in the two
        page.evaluate bodies because each runs in its own page context. */
-      function groupLabel(first, els, clean) {
+        /* One question, not the whole block. Amazon repeats its text and
+         appends a FAQ paragraph; the first sentence is the question. */
+      function firstSentence(t) {
+        const cut = t.replace(/\s+/g, ' ').trim();
+        const m = cut.match(/^.{10,220}?[?.](?=\s|$)/);
+        return (m ? m[0] : cut.slice(0, 220)).trim();
+      }
+
+    function groupLabel(first, els, clean) {
       const mine = new Set(els);
+
+      // A container that names the question. Amazon wraps each in
+      // <div class="question">, and without this the group took its label
+      // from its own first option — "No, I was NEVER a government employee."
+      // as the question, which no rule could answer.
+      const qc = first.closest('[class*="question" i]');
+      if (qc) {
+        const t = clean([...qc.childNodes]
+          .filter(n => !(n.nodeType === 1 && [...mine].some(m => n.contains(m))))
+          .map(n => n.textContent).join(' '))
+          .replace(/\bQuestion\b\s*/gi, '').trim();
+        if (t && t.length > 10) return firstSentence(t);
+      }
+
       let node = first.closest('fieldset, [class*="field"], [class*="question"], div');
       for (let i = 0; i < 5 && node; i++, node = node.parentElement) {
         const inputs = [...node.querySelectorAll('input, select, textarea')]
@@ -938,13 +1070,26 @@ async function readEmpties(page) {
     for (const [name, els] of Object.entries(groups)) {
       if (els.some(e => e.checked)) continue;
       const q = groupLabel(els[0], els, clean);
-      const req = els.some(e => e.required || e.getAttribute('aria-required') === 'true') || /\*/.test(q);
+      const req = (els.some(e => e.required || e.getAttribute('aria-required') === 'true') || /\*/.test(q))
+        // A block that calls itself optional is not required, whatever the
+        // markup says — this check has to agree with the filler's, or a
+        // group nobody was asked to answer still blocks the submission.
+        && !/\(\s*optional\s*\)|\boptional\b/i.test(q);
       if (req) out.push(q || name);
     }
 
     document.querySelectorAll('input, textarea, select').forEach(el => {
       const req = el.required || el.getAttribute('aria-required') === 'true';
       if (!req) return;
+      // A field whose own label says it is optional is not required. The
+      // group branch above already honours this; without it here,
+      // "(Optional) Personal Preferences*" blocked a completed Anthropic
+      // application on a question nobody has to answer.
+      {
+        const l = el.id ? document.querySelector(`label[for="${CSS.escape(el.id)}"]`) : null;
+        const lt = clean(l && l.textContent);
+        if (lt && /\(\s*optional\s*\)|\boptional\b/i.test(lt)) return;
+      }
       // A field the page has hidden cannot block a person either, and
       // Greenhouse leaves "required" on the employment end-date inputs after
       // "Current role" is ticked and they are taken off screen.
