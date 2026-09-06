@@ -24,18 +24,27 @@
 const YES = /^(yes|y|true|i am|i do|i have|i can|i will|correct|affirmative)\b/i;
 const NO  = /^(no|n|false|i am not|i do not|i don't|i have not|i haven't|none|not applicable|n\/a)\b/i;
 
-/** Facts the resolver is allowed to reason from. */
+/** Facts the resolver is allowed to reason from.
+    Several answers are lists of acceptable phrasings rather than one string —
+    city is ["Montreal", "Greater Montreal", ..., "Brossard"] — so every field
+    is normalised here. Reading .toLowerCase() off an array threw, and took
+    the resolver down for every question on the form. */
+const one = v => String(Array.isArray(v) ? (v[0] ?? '') : (v ?? ''));
+
 function facts(answers = {}) {
   return {
-    city:     (answers.city || '').toLowerCase(),
-    province: (answers.province || '').toLowerCase(),
-    country:  (answers.country || '').toLowerCase(),
-    school:   (answers.school || '').toLowerCase(),
-    degree:   (answers.degree || '').toLowerCase(),
-    field:    (answers.fieldOfStudy || '').toLowerCase(),
-    employer: (answers.currentEmployer || '').toLowerCase(),
-    gradYear: String(answers.gradYear || ''),
-    name:     [answers.firstName, answers.lastName].filter(Boolean).join(' ')
+    city:     one(answers.city).toLowerCase(),
+    province: one(answers.province).toLowerCase(),
+    country:  one(answers.country).toLowerCase(),
+    school:   one(answers.school).toLowerCase(),
+    degree:   one(answers.degree).toLowerCase(),
+    field:    one(answers.fieldOfStudy).toLowerCase(),
+    employer: one(answers.currentEmployer).toLowerCase(),
+    gradYear: one(answers.gradYear),
+    name:     [answers.firstName, answers.lastName].map(one).filter(Boolean).join(' '),
+    // Every phrasing of the city, so "are you based in Brossard?" is also yes.
+    cityAll:  (Array.isArray(answers.city) ? answers.city : [answers.city])
+                .filter(Boolean).map(v => String(v).toLowerCase())
   };
 }
 
@@ -50,7 +59,8 @@ function polarity(question, answers) {
 
   // Named place or school: answer from whether it is actually ours.
   const places = [
-    [f.city, 'city'], [f.province, 'province'], [f.country, 'country'], [f.school, 'school']
+    ...f.cityAll.map(c => [c, 'city']),
+    [f.province, 'province'], [f.country, 'country'], [f.school, 'school']
   ].filter(([v]) => v && v.length > 3);
 
   for (const [value] of places) {
@@ -70,6 +80,17 @@ function polarity(question, answers) {
       if (!re.test(q)) continue;
       const isMine = here.includes(name) || name.includes(here);
       return { value: isMine ? 'Yes' : 'No', why: `you are in ${f.country || 'Canada'}` };
+    }
+    // A named place that is none of ours — "are you based in Toronto?" — is
+    // a no. Staying silent here left a required yes/no question blank when
+    // the answer was never in doubt.
+    const named = q.match(/\b(?:based|located|living|reside|currently)\s+(?:in|near)\s+(?:the\s+)?([a-z][a-z .'-]{2,28})/);
+    if (named) {
+      const place = named[1].trim().replace(/\s*\?$/, '');
+      const ours = [...f.cityAll, f.province, f.country].filter(Boolean);
+      if (!ours.some(o => o.includes(place) || place.includes(o))) {
+        return { value: 'No', why: `you are in ${f.city || 'Montreal'}, not ${place}` };
+      }
     }
   }
 
@@ -418,8 +439,8 @@ function matchScale(question, options = [], answers = {}) {
   // Needs to be a scale, not a list that happens to contain "basic".
   if (levels.length < Math.max(3, Math.ceil(options.length * 0.6))) return null;
 
-  const known = String(answers.programmingLanguages || '') + ' ' +
-                String(answers.skills || '') + ' ' + String(answers.tools || '');
+  const known = [answers.programmingLanguages, answers.skills, answers.tools]
+    .flatMap(v => Array.isArray(v) ? v : [v]).filter(Boolean).join(' ');
   const head = subject.split(/[\s,/]+/)[0].toLowerCase();
   const onCv = head.length > 1 &&
     new RegExp(head.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(known);
@@ -445,7 +466,7 @@ function confirmClaim(question, options = [], answers = {}) {
   if (!/\b(i\s*confirm|i\s*certify|i\s*attest|confirm\s*that)\b/i.test(q)) return null;
   if (!/graduat|complet\w*\s*(?:my|the)\s*(?:degree|program)/i.test(q)) return null;
 
-  const mine = monthIndex(answers.gradDate || answers.gradYear || '');
+  const mine = monthIndex(one(answers.gradDate) || one(answers.gradYear) || '');
   if (mine === null) return null;
 
   // Every date the claim offers, as a window of that term.
