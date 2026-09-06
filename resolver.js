@@ -102,6 +102,27 @@ function polarity(question, answers) {
     if (named && !f.school.includes(named)) return { value: 'No', why: `not a ${named} student` };
   }
 
+  // "Do you have experience with X?" where X is on the CV. Amazon gates its
+  // screening on a run of these, and they are yes/no rather than a list of
+  // languages — which is what the skills rule was trying to put in.
+  const exp = q.match(/do you have (?:experience|knowledge|familiarity)[^?]{0,30}(?:with|in|programming with)\s+([^?]{3,70})/);
+  if (exp) {
+    const subject = exp[1].toLowerCase();
+    const known = [answers.programmingLanguages, answers.skills, answers.tools]
+      .flatMap(v => Array.isArray(v) ? v : [v]).filter(Boolean).join(' ').toLowerCase();
+    const generic = /at least one|any (?:one|of)|software (?:programming )?language|programming language/.test(subject);
+    if (generic) return { value: 'Yes', why: 'programming experience' };
+    const head = subject.split(/[\s,/]+/).find(w => w.length > 2);
+    if (head) {
+      // And no when it is not. Falling through let a later, vaguer rule
+      // answer yes to "do you have experience with Kubernetes?", which is
+      // not on the CV — a claim that fails the moment anyone asks about it.
+      return known.includes(head)
+        ? { value: 'Yes', why: `${head} is on the CV` }
+        : { value: 'No', why: `${head} is not on the CV` };
+    }
+  }
+
   // Willingness and capability: the applicant is applying, so yes.
   if (/\b(are you (willing|able|open|comfortable|available|prepared)|can you|would you be (willing|able|open))\b/.test(q)) {
     return { value: 'Yes', why: 'willingness' };

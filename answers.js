@@ -148,6 +148,17 @@ const ANSWER_RULES = [
     re: /receive\s*(?:communications|messages|texts?|updates?)[^?]{0,50}(?:sms|text|whatsapp)|(?:sms|text\s*message|whatsapp)[^?]{0,40}(?:updates?|notifications?|communications?)|opt[- ]?in[^?]{0,30}(?:sms|text)/i,
     from: 'smsOptIn' },
 
+  /* Amazon asks nearly every screening question as "total non-internship
+     professional experience". Five internships do not count toward that by
+     the question's own definition, and the contract began two weeks ago —
+     so the truthful bucket is the lowest one. Answering otherwise is a
+     claim that unravels in the first phone screen, and Amazon verifies
+     dates. This has to outrank the general years rule, and its regex is
+     longer, so it does. */
+  { id: 'nonInternshipYears',
+    re: /(?:total\s*)?non[-\s]?intern(?:ship)?\s*(?:professional\s*)?[^?]{0,90}experience|which\s*option\s*best\s*describes\s*your\s*total\s*non[-\s]?intern/i,
+    from: 'nonInternshipYears' },
+
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
 /* ── Location and logistics the blocked list surfaced ── */
@@ -528,6 +539,9 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     jobEndMonth: profile.jobEndMonth || '',
     jobEndYear: profile.jobEndYear || '',
     smsOptIn: profile.smsOptIn || 'Yes',
+    // Two weeks of contract work. Everything before it was an internship,
+    // which is exactly what these questions exclude.
+    nonInternshipYears: profile.nonInternshipYears || '0',
     over18: profile.over18 || 'Yes',
 
     relocate: profile.relocate || 'Yes',

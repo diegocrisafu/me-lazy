@@ -358,6 +358,12 @@ async function fetchAmazon(company, opts = {}) {
           title: j.title,
           location: j.normalized_location || j.location || '',
           url: 'https://www.amazon.jobs' + j.job_path,
+          // The advert and the form are different pages. amazon.jobs puts
+          // the application at /applicant/jobs/<id>/apply, and pointing at
+          // the advert meant nothing ever reached a form.
+          applyUrl: (String(j.job_path || '').match(/\/jobs\/(\d+)/) || [])[1]
+            ? `https://www.amazon.jobs/applicant/jobs/${(String(j.job_path).match(/\/jobs\/(\d+)/))[1]}/apply`
+            : 'https://www.amazon.jobs' + j.job_path,
           description: stripHTML([j.description, j.basic_qualifications, j.preferred_qualifications]
             .filter(Boolean).join('\n\n')),
           postedAt: j.posted_date ? new Date(j.posted_date).toISOString() : null

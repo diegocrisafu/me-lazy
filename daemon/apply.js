@@ -42,6 +42,29 @@ async function surveyFields(page) {
         const l = document.querySelector(`label[for="${CSS.escape(el.id)}"]`);
         if (l && clean(l.textContent)) return clean(l.textContent);
       }
+      // A container that calls itself the question. Amazon wraps each one in
+      // <div class="question"> and gives the select a label that is just its
+      // own option list, so every question read as "Select an option".
+      // Strictly the question container first. Falling back to form-group in
+      // the same pass picked up the section header — "Job-specific questions
+      // / Progress will be auto-saved" — whenever a question wrapper was
+      // missing, which is worse than no label at all.
+      let q = el.closest('[class*="question" i]') ||
+              el.closest('[class*="form-group" i]');
+      for (let d = 0; d < 3 && q; d++, q = q.parentElement?.closest('[class*="question" i]')) {
+        // The question is everything in the container except the part that
+        // holds the control. Subtracting the option text worked only when
+        // the options appeared verbatim and contiguously, which they do not
+        // once a placeholder is interleaved.
+        const t = clean([...q.childNodes]
+          .filter(n => !(n.nodeType === 1 && n.contains(el)))
+          .map(n => n.textContent).join(' '))
+          .replace(/\bQuestion\b\s*/gi, '').trim();
+        if (/progress will be auto-?saved|job-specific questions|required fields?/i.test(t)) continue;
+        if (t && t.length > 10 && t.length < 400) return t.slice(0, 220);
+      }
+
+
       const own = el.closest('label');
       if (own && clean(own.textContent)) return clean(own.textContent);
       const aria = el.getAttribute('aria-label');
@@ -162,8 +185,29 @@ async function fillField(page, handle, info, answers, ctx) {
 
   if (r.status === 'exact') {
     if (info.tag === 'select') {
-      const picked = await selectOption(handle, r.value);
-      if (picked) return { field: r.ruleId, label, value: r.value, kind: 'select' };
+      for (const candidate of (r.alternatives || [r.value])) {
+        if (await selectOption(handle, candidate)) {
+          return { field: r.ruleId, label, value: candidate, kind: 'select' };
+        }
+      }
+
+      // A plain <select> only ever got exact text matching, while a combobox
+      // got ranges, dates and concepts. That is why Amazon's "0" years never
+      // landed in "less than 2 years" — the matcher existed and the select
+      // path could not reach it.
+      const texts = await handle.evaluate(el =>
+        [...el.options].map(o => (o.textContent || '').trim())).catch(() => []);
+      const byShape = [
+        RESOLVER.matchRange(r.value, texts),
+        RESOLVER.matchDate(r.value, texts),
+        RESOLVER.matchConcept(r.ruleId, r.value, texts)
+      ].find(i => i >= 0);
+      if (byShape >= 0 && texts[byShape]) {
+        if (await selectOption(handle, texts[byShape])) {
+          return { field: r.ruleId, label, value: texts[byShape], kind: 'select' };
+        }
+      }
+
       if (!r.critical) {
         const guess = await resolveUnknown(page, handle, info, label, answers, ctx);
         if (guess) return guess;
@@ -1257,6 +1301,52 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     await page.waitForTimeout(1200);
     for (const g of await fillButtonGroups(page, answers, ctx)) {
       if (!filled.some(f => f.label === g.label)) filled.push(g);
+    }
+
+    // ── Multi-step forms ──
+    // Amazon splits an application across "Contact information", "General
+    // questions" and "Education", one Continue at a time, and a single fill
+    // pass only ever sees the first. Advance while a Continue exists and the
+    // page actually changes, filling each step as it appears. Continue does
+    // nothing until the current step is answered, so a step that fails to
+    // advance is the signal to stop rather than a reason to keep clicking.
+    for (let step = 0; step < 6; step++) {
+      if (Date.now() > deadline) break;
+
+      const advanced = await page.evaluate(() => {
+        const btn = [...document.querySelectorAll('button, input[type="button"]')]
+          .filter(b => b.offsetParent || b.getClientRects().length)
+          .find(b => /^(continue|next|save and continue|next step)$/i
+            .test((b.textContent || b.value || '').trim()));
+        if (!btn || btn.disabled) return false;
+        btn.click();
+        return true;
+      }).catch(() => false);
+      if (!advanced) break;
+
+      await page.waitForTimeout(2500);
+
+      const survey = await surveyFields(page);
+      const worth = survey.filter(f =>
+        !f.disabled && f.visible && !f.hasValue && !f.isProxy &&
+        !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes(f.type));
+      if (!worth.length) break;   // nothing new appeared; the wizard is done
+
+      let filledHere = 0;
+      for (const info of worth) {
+        if (Date.now() > deadline) break;
+        const handle = await page.$(`[data-acc-i="${info.i}"]`).catch(() => null);
+        if (!handle) continue;
+        const r = await fillField(page, handle, info, answers, ctx).catch(() => null);
+        if (r) { filledHere++; if (!filled.some(f => f.label === r.label)) filled.push(r); }
+      }
+      for (const g of await fillChoiceGroups(page, answers, ctx)) {
+        if (!filled.some(f => f.label === g.label)) { filled.push(g); filledHere++; }
+      }
+      for (const g of await fillButtonGroups(page, answers, ctx)) {
+        if (!filled.some(f => f.label === g.label)) { filled.push(g); filledHere++; }
+      }
+      if (!filledHere) break;    // stuck on something we cannot answer
     }
 
     const files = await attachFiles(page, record, ctx);
