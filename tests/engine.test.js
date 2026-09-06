@@ -850,3 +850,36 @@ test('a named overseas place beats the employer country fallback', () => {
   assert.equal(target.classifyLocation({ location: 'Toronto, ON' }).region, 'CA');
   assert.equal(target.classifyLocation({ location: 'New York, NY' }).region, 'US');
 });
+
+test('an account-walled site is appliable only once its session exists', () => {
+  const job = { ats: 'amazon', cvFile: 'x.pdf' };
+  const without = runner.applyability(job, {}, { missingCritical: [] });
+  assert.equal(without.canAuto, false);
+  assert.match(without.reason, /sign-in at amazon\.jobs/);
+
+  const with_ = runner.applyability(job, {}, { missingCritical: [], sessions: ['amazon.jobs'] });
+  assert.equal(with_.canAuto, true);
+
+  // Ordinary boards are unaffected.
+  assert.equal(runner.applyability({ ats: 'greenhouse', cvFile: 'x.pdf' }, {},
+    { missingCritical: [] }).canAuto, true);
+});
+
+test('a team list with no ranking asked for still gets picked', () => {
+  const resolver = require('../resolver.js');
+  const a = answers.defaultAnswers({}, {}, { region: 'US' });
+  const teams = [
+    'Platform – The Platform team builds shared infrastructure used across Anthropic',
+    'Interpretability — investigates what models are doing internally',
+    'Societal Impact — research on the effects of AI on society'
+  ];
+  assert.match(resolver.resolve('Team Matching', teams, a).value, /^Platform/);
+
+  // Ordinals still rank.
+  const cf = ['Backend/Systems', 'Full-stack', 'Frontend'];
+  assert.equal(resolver.resolve('1st choice: Area of interest', cf, a).value, 'Backend/Systems');
+  assert.equal(resolver.resolve('2nd choice: Area of interest', cf, a).value, 'Full-stack');
+
+  // And a list that is not areas is still declined.
+  assert.equal(resolver.matchPreference('What is your favourite colour?', ['Red', 'Blue']), null);
+});

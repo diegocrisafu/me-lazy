@@ -113,6 +113,17 @@ const ANSWER_RULES = [
     re: /(?:do\s*not|don'?t)\s*have\s*a\s*(?:school|university|academic)\s*e-?mail|reason[^?]{0,30}school\s*e-?mail/i,
     from: 'noSchoolEmailReason' },
 
+  /* "Team Matching" — which team you want, asked as a bare label. */
+  { id: 'teamMatching',
+    re: /^team\s*matching|team\s*preference|which\s*team[^?]{0,30}(?:interested|prefer|join)/i,
+    from: 'preferredDepartment' },
+
+  /* Anthropic's "which location for your 25% time in person" and its kin:
+     a choice of office, not a question about where you live. */
+  { id: 'officePreference',
+    re: /which\s*(?:one|office|location)[^?]{0,60}(?:interested\s*in\s*working|prefer|based)|locations?\s*listed\s*on\s*the\s*job\s*posting|preferred\s*office/i,
+    from: 'preferredLocation' },
+
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
 /* ── Location and logistics the blocked list surfaced ── */
@@ -271,6 +282,8 @@ const ANSWER_RULES = [
   { id: 'strengths', longform: true,
     not: /race|ethnic|gender|orientation|disab|veteran|demographic/i,
     re: /greatest\s*strength|tell\s*us\s*(?:something\s*)?about\s*yourself|describe\s*yourself|tell\s*us\s*something[^?]{0,60}(?:resume|r[ée]sum[ée]|cv)\b|(?:not|n't)\s*(?:find\s*)?on\s*(?:your\s*)?(?:resume|r[ée]sum[ée]|cv)\b|why\s*(?:do\s*you\s*think\s*)?(?:are\s*)?you[^?]{0,30}\b(?:good\s*fit|right\s*fit|a\s*fit|right\s*(?:person|candidate))\b|what\s*makes\s*you[^?]{0,40}(?:candidate|fit)|what\s*qualities[^?]{0,60}(?:great|good|strong|successful)|how\s*do\s*your\s*skills\s*and\s*experience/i },
+  { id: 'values', longform: true,
+    re: /in\s*line\s*with\s*your\s*values|something\s*meaningful[^?]{0,40}(?:you\s*have\s*done|values)|(?:example|time)[^?]{0,30}(?:lived|acted\s*on)\s*(?:your|our)\s*values|what\s*(?:do\s*you\s*)?(?:value|care\s*about)\s*most/i },
   { id: 'project', longform: true,
     re: /(?:favourite|favorite|interesting|challenging|recent|significant)\b[^?]{0,30}\bproject\b|describe\s*(?:a|your)[^?]{0,40}\bproject\b|proud\s*of|technical\s*challenge|describe\s*your\s*experience\s*(?:working\s*)?(?:with|in|on)\b|tell\s*us\s*about\s*(?:a|your)\s*(?:time|experience)/i },
 
@@ -290,7 +303,7 @@ const ANSWER_RULES = [
   { id: 'shareWithPartners', consent: true,
     re: /share\s*my\s*(?:resume|r[ée]sum[ée]|profile|contact\s*information)[^?]{0,70}(?:partners?|network|affiliates?|third\s*part)|talent\s*(?:network|community)|consider\s*me\s*for\s*other\s*(?:roles|positions|opportunities)/i },
   { id: 'policyConsent', consent: true,
-    re: /\b(?:ai|privacy|applicant|candidate|recruitment|data)\s*(?:use\s*)?policy\b|policy\s*for\s*application|terms\s*(?:and|&)\s*conditions|code\s*of\s*conduct/i },
+    re: /\b(?:ai|privacy|applicant|candidate|recruitment|data)\s*(?:use\s*)?policy\b|policy\s*for\s*application|terms\s*(?:and|&)\s*conditions|code\s*of\s*conduct|arbitration\s*agreement|agreement\s*to\s*arbitrate|please\s*read\s*the[^?]{0,40}agreement/i },
   { id: 'lgbtq',      demographic: true, re: /lgbt|sexual\s*orientation|orientation\s*sexuelle/i },
   // "I identify as:" is how several forms head the whole self-identification
   // block without naming what they are asking about. It is never anything but

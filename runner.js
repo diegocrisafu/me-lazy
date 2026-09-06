@@ -169,7 +169,13 @@ const AUTO_APPLY_SUPPORT = {
   ashby:           { auto: true,  note: 'single-page form, fully fillable' },
   smartrecruiters: { auto: true,  note: 'single-page form' },
   workday:         { auto: false, reason: 'needs an account per employer and a multi-step wizard' },
-  custom:          { auto: false, reason: 'employer runs its own application flow' }
+  custom:          { auto: false, reason: 'employer runs its own application flow' },
+  // Sites with their own account wall but an otherwise ordinary form. These
+  // are appliable once, and only once, a session exists in the browser
+  // profile — 178 Amazon postings, most of them Toronto SDE roles, were
+  // being discarded for the want of a single sign-in.
+  amazon:          { auto: true, needsSession: 'amazon.jobs',
+                     reason: 'needs one sign-in at amazon.jobs — run: npm run login -- https://www.amazon.jobs' }
 };
 
 /**
@@ -180,6 +186,12 @@ function applyability(job, answers = {}, opts = {}) {
   const support = AUTO_APPLY_SUPPORT[job.ats] || { auto: false, reason: 'unknown system' };
 
   if (!support.auto) blockers.push(support.reason);
+
+  // An account-walled site is only appliable while we hold its session.
+  if (support.auto && support.needsSession) {
+    const held = opts.sessions || [];
+    if (!held.includes(support.needsSession)) blockers.push(support.reason);
+  }
 
   // Measured per employer: some boards redirect to the company's own careers
   // site, where there is no form to fill. Knowing that up front saves an

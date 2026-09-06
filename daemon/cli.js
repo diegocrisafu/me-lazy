@@ -88,7 +88,17 @@ async function cmdLogin() {
   const page = await ctx.newPage();
   await page.goto(url);
   await new Promise(res => ctx.on('close', res));
-  console.log('Session saved.');
+
+  // Record the host, so applyability knows the account wall is now open.
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '');
+    const s = store.getSettings();
+    s.sessions = [...new Set([...(s.sessions || []), host])];
+    store.saveSettings(s);
+    console.log(`Session saved for ${host}. Roles there are now auto-appliable.`);
+  } catch {
+    console.log('Session saved.');
+  }
 }
 
 (async () => {

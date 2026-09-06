@@ -361,7 +361,7 @@ function matchConcept(ruleId, value, options = []) {
    real second rather than a repeat, which some forms reject outright. */
 
 const AREA_RANK = [
-  /backend|back[-\s]?end|infrastructure|platform|systems?\b|distributed|core\s*eng/i,
+  /\bplatform\b|backend|back[-\s]?end|infrastructure|systems?\b|distributed|core\s*eng/i,
   /full[-\s]?stack/i,
   /data|machine\s*learning|\bml\b|\bai\b|analytics/i,
   /product\s*eng|application/i,
@@ -384,10 +384,13 @@ function ordinal(question) {
  * @returns {string|null}
  */
 function matchPreference(question, options = []) {
-  const n = ordinal(question);
-  if (n === null) return null;
   if (!/area|interest|type\s*of\s*(engineering|work)|team|discipline|track|specialis|specializ/i
         .test(String(question))) return null;
+
+  // No ordinal means "pick one" rather than "pick your second" — Anthropic's
+  // "Team Matching" is a list of teams with no ranking asked for. Take the
+  // best fit rather than declining to answer.
+  const n = ordinal(question) ?? 0;
 
   const ranked = options
     .map(o => ({ o, r: AREA_RANK.findIndex(re => re.test(o)) }))

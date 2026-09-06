@@ -117,6 +117,21 @@ const KINDS = {
       'the manual step everyone has quietly accepted, and remove it. ' + pick(job, 1)[0].text;
   },
 
+  /* "Something meaningful you have done in line with your values" — asked
+     by Anthropic and increasingly by others. The failure mode is a
+     platitude, so this answers with a specific piece of work and what the
+     choice in it actually was. */
+  values(job) {
+    return 'At McKesson I built internal iOS tooling whose job was to enforce data-privacy ' +
+      'policy on how staff handled sensitive customer and employee information. It would have ' +
+      'been faster to ship the feature and leave the policy to a training document; the reason ' +
+      'not to is that the failure mode there is somebody\'s medical or payroll data, and a ' +
+      'control that exists in the software is the only one that holds when people are busy. ' +
+      'The same instinct shows up in the rest of my work as removing the manual step everyone ' +
+      'has quietly accepted — a four-hour task at CAE cut to thirty minutes — because the ' +
+      'repeated manual step is where mistakes and resentment both accumulate.';
+  },
+
   /* Open "anything else" boxes */
   coverLetter(job, cover) { return cover || KINDS.whyCompany(job); }
 };

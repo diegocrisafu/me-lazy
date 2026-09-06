@@ -133,7 +133,8 @@ function sweepUnappliable(apps, settings) {
     const check = runner.applyability(
       { ...rec, cvNeedsFile: cv?.enabled === false }, answers_,
       { missingCritical: settings.runner.requireCriticalAnswers ? missing : [],
-        requireCriticalAnswers: settings.runner.requireCriticalAnswers });
+        requireCriticalAnswers: settings.runner.requireCriticalAnswers,
+        sessions: settings.sessions || [] });
     if (check.canAuto) continue;
 
     tracker.applyStatus(rec, 'scouted', { reason: check.reason });
@@ -162,7 +163,8 @@ async function applyOne(id, settings = store.getSettings()) {
   const check = runner.applyability(
     { ...rec, cvNeedsFile: cv?.enabled === false }, ans,
     { missingCritical: settings.runner.requireCriticalAnswers ? missing : [],
-      requireCriticalAnswers: settings.runner.requireCriticalAnswers });
+      requireCriticalAnswers: settings.runner.requireCriticalAnswers,
+      sessions: settings.sessions || [] });
 
   if (!check.canAuto) {
     tracker.applyStatus(rec, 'scouted', { reason: check.reason });

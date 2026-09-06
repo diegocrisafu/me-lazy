@@ -690,7 +690,7 @@ const COMPANIES = [
     oa:{ likelihood:0.5, platform:'CodeSignal', note:'Browser-only' } },
 
   { id:'amazon', name:'Amazon', tier:3, country:'US', sector:'bigtech',
-    ats:'custom', adapter:'amazon', verified:null, jobs:null,
+    ats:'amazon', adapter:'amazon', verified:null, jobs:null,
     oa:{ likelihood:0.9, platform:'Amazon OA', note:'SDE intern / new grad OA is near-automatic' } },
 
   { id:'microsoft', name:'Microsoft', tier:3, country:'US', sector:'bigtech',
