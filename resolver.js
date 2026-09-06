@@ -59,6 +59,20 @@ function polarity(question, answers) {
     if (head.length > 3 && q.includes(head)) return { value: 'Yes', why: `profile names ${head}` };
   }
 
+  // "Are you currently located in the US?" — a country that is not the one
+  // in the profile. Answering yes would be a false claim about where you are.
+  const here = String(f.country || '').toLowerCase();
+  const NAMES = { 'united states': /\b(the\s*)?(us|u\.s\.|usa|united states|america)\b/,
+                  'canada': /\bcanada\b/,
+                  'united kingdom': /\b(uk|u\.k\.|united kingdom|britain|england)\b/ };
+  if (/\b(located|based|living|reside|currently\s*in)\b/.test(q)) {
+    for (const [name, re] of Object.entries(NAMES)) {
+      if (!re.test(q)) continue;
+      const isMine = here.includes(name) || name.includes(here);
+      return { value: isMine ? 'Yes' : 'No', why: `you are in ${f.country || 'Canada'}` };
+    }
+  }
+
   // A specific university that is not ours — "current University of Waterloo
   // student" — is a no, and answering yes would be a false claim.
   const uni = q.match(/university of ([a-z ]{3,24})|([a-z]{4,20}) university/);

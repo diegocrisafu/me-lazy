@@ -635,7 +635,23 @@ async function fillChoiceGroups(page, answers, ctx) {
       }
       want = ['Yes', 'I accept', 'I agree'];
     }
-    else { if (g.required) ctx.skipped.push({ label: g.question, reason: r.reason || 'no saved answer' }); continue; }
+    else if (r.status === 'demographic') {
+      // These are radio groups as often as dropdowns, and they were being
+      // skipped rather than declined — which leaves a required question
+      // blank and stops the form.
+      want = r.decline;
+    }
+    else {
+      // Everything a dropdown gets, a radio group gets too. The options are
+      // right here, and reading them is how a question nobody wrote a rule
+      // for still gets answered.
+      const guess = RESOLVER.resolve(g.question, g.options.map(o => o.text), answers);
+      if (guess) want = [guess.value];
+      else {
+        if (g.required) ctx.skipped.push({ label: g.question, reason: r.reason || 'no saved answer' });
+        continue;
+      }
+    }
 
     let picked = null;
     for (const candidate of want) {

@@ -43,6 +43,13 @@ const ANSWER_RULES = [
     re: /(?:which\s*)?country\/?(?:region)?\s*(?:do\s*you\s*have\s*)?citizenship|country\s*of\s*citizenship|citizenship\s*country/i,
     from: 'citizenshipCountry' },
 
+  // Asked for export-control screening, and a yes/no rather than a country.
+  // It has to outrank the citizenship rule, which is critical and so never
+  // falls through to a second reading — it was answering "Canadian citizen"
+  // into a Yes/No control.
+  { id: 'otherResidency',
+    re: /(?:since\s*obtaining|after\s*obtaining)[^?]{0,60}(?:permanent\s*resident|citizenship)[^?]{0,40}|permanent\s*resident\s*(?:in|of)\s*any\s*other\s*countr\w*/i,
+    from: 'otherResidency' },
   { id: 'citizenship', critical: true,
     re: /citizen|permanent\s*resident|citoyen|r[ée]sident\s*permanent/i,
     not: /sponsor/i, from: 'citizenship' },
@@ -86,7 +93,7 @@ const ANSWER_RULES = [
   { id: 'school',       re: /school|university|universit[ée]|college|institution|[ée]tablissement|currently\s*attend/i,
     not: /when|date|month|year|complete|graduat|scale|gpa|grade/i, from: 'school' },
   { id: 'degree',       re: /degree|dipl[ôo]me|\bqualification/i, from: 'degree' },
-  { id: 'fieldOfStudy', re: /field\s*of\s*study|major|discipline|domaine|programme?\s*of\s*study/i, from: 'fieldOfStudy' },
+  { id: 'fieldOfStudy', re: /field\s*of\s*study|area\s*of\s*study|major|discipline|domaine|programme?\s*of\s*study|course\s*of\s*study|area\s*of\s*concentration/i, from: 'fieldOfStudy' },
   { id: 'gpa',          re: /\bgpa\b|grade\s*point|moyenne|academic\s*average/i, from: 'gpa' },
   // Education date controls are usually split into month and year selects.
   // "Immediately" in a month dropdown is a failed submit, so these are
@@ -198,7 +205,7 @@ const ANSWER_RULES = [
     not: /race|ethnic|gender|orientation|disab|veteran|demographic/i,
     re: /greatest\s*strength|tell\s*us\s*about\s*yourself|describe\s*yourself|why\s*(?:do\s*you\s*think\s*)?(?:are\s*)?you[^?]{0,30}\b(?:good\s*fit|right\s*fit|a\s*fit|right\s*(?:person|candidate))\b|what\s*makes\s*you[^?]{0,40}(?:candidate|fit)/i },
   { id: 'project', longform: true,
-    re: /(?:favourite|favorite|interesting|challenging|recent|significant)\b[^?]{0,30}\bproject\b|describe\s*(?:a|your)[^?]{0,40}\bproject\b|proud\s*of|technical\s*challenge/i },
+    re: /(?:favourite|favorite|interesting|challenging|recent|significant)\b[^?]{0,30}\bproject\b|describe\s*(?:a|your)[^?]{0,40}\bproject\b|proud\s*of|technical\s*challenge|describe\s*your\s*experience\s*(?:working\s*)?(?:with|in|on)\b|tell\s*us\s*about\s*(?:a|your)\s*(?:time|experience)/i },
 
 
   /* ── Demographic ──
@@ -393,6 +400,8 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
        'Core Development', 'Software', 'Development', 'Quantitative Development',
        'Quantitative Research', 'Any', 'No preference'],
     militaryService: profile.militaryService || 'No',
+    // One citizenship, living in the country that issued it.
+    otherResidency: profile.otherResidency || 'No',
     currentEmployer: profile.currentEmployer || 'McKesson',
     currentTitle: profile.currentTitle || 'Software Developer',
     // No non-compete, no conflicts, able to do the job — all "No"/"Yes"

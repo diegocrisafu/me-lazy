@@ -218,7 +218,14 @@ async function applyOne(id, settings = store.getSettings()) {
   } else {
     tracker.applyStatus(rec, 'scouted', { reason: result.blocked || result.error });
     rec.scoutReason = result.blocked || result.error || 'could not complete the form';
-    rec.scoutBlockers = (result.skipped || []).filter(s => s.critical).map(s => s.label);
+    // Everything that actually stopped this application: the answers that
+    // were missing, and the required fields the page still considered empty.
+    // Only the first was being recorded, so a question the form rejected but
+    // no rule flagged never reached the answer book.
+    rec.scoutBlockers = [...new Set([
+      ...(result.skipped || []).filter(s => s.critical).map(s => s.label),
+      ...(result.requiredStillEmpty || [])
+    ])].filter(Boolean);
     log(`  blocked  ${rec.company} — ${rec.title.slice(0, 40)}  (${rec.scoutReason})`);
 
     // An employer asks the same questions on every posting it runs. Retrying
