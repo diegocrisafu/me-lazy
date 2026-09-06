@@ -72,8 +72,15 @@ function classifyLevel(title = '', description = '') {
     /\bnon[-\s]?intern(ship)?\b|\bexcluding\s+internships?\b|\boutside\s+of\s+internships?\b|\bpost[-\s]?graduation\s+experience\b/i
       .test(d);
   if (yrs > 0 && yrs <= 4 && !excludesInternships) return 'mid';
+  if (yrs > 0) return 'unknown';   // a real ask above the ceiling
 
-  return 'unknown';
+  // A plain "Software Engineer" that names no year count at all. It is
+  // probably mid-level, and it is reachable — the posting never drew the
+  // line that would exclude you. Treating it as unclear parked 203 roles,
+  // which is exactly the interview voided on an experience bar nobody
+  // actually stated. readsSenior above still catches the ones that describe
+  // an experienced hire without putting a number on it.
+  return 'mid';
 }
 
 /* ─────────── ROLE FAMILY ───────────
@@ -466,12 +473,22 @@ function evaluate(job, salary, rules = {}) {
   // requirement means "we could not read one", not "there is none" —
   // treating those as equivalent sweeps in every mid-level role whose
   // phrasing the parser missed.
-  if (level === 'unknown' && r.inferEntryFromExperience &&
+  // 'mid' is the fallback classifyLevel gives an unmarked title, so the
+  // inference has to be allowed to overrule it — otherwise a posting that
+  // plainly says "currently pursuing a Bachelor's" is filed as a stretch
+  // role and scored as one.
+  if ((level === 'unknown' || level === 'mid') && r.inferEntryFromExperience &&
       job.description && job.description.length > 200 &&
       years <= r.inferEntryMaxYears &&
       ENTRY_EVIDENCE.test(job.description)) {
     level = 'newgrad';
     levelInferred = true;
+  }
+
+  // A body that reads like an experienced hire outranks the mid fallback too.
+  if (level === 'mid' && !requiredYears(job.description) && seniorTone &&
+      r.rejectSeniorTone !== false) {
+    level = 'unknown';
   }
 
   if (level === 'unknown' && seniorTone && r.rejectSeniorTone !== false) {

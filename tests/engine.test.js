@@ -154,10 +154,24 @@ test('mid-level role is rejected even when the title is silent about level', () 
 
 test('entry level is inferred only on positive evidence', () => {
   const base = 'We build large scale systems using modern tooling and practices. '.repeat(6);
+  // The guarantee this test was written for still holds: silence is never
+  // read as entry level, which is the bug that let mid-level Amazon roles
+  // through as new-grad. What changed is what happens next — a posting that
+  // never states a year count is pursued as a stretch rather than discarded,
+  // because it never drew the line that would exclude five internships.
   const silent = target.evaluate(
     { title: 'Software Development Engineer', location: 'Toronto, ON', description: base },
     { found: false });
-  assert.equal(silent.eligible, false, 'silence must not imply entry level');
+  assert.notEqual(silent.level, 'newgrad', 'silence must not imply entry level');
+  assert.equal(silent.level, 'mid');
+  assert.equal(silent.eligible, true);
+
+  // A stated bar above the ceiling is still a rejection.
+  const stated = target.evaluate(
+    { title: 'Software Development Engineer', location: 'Toronto, ON',
+      description: base + ' 8+ years of experience required.' },
+    { found: false });
+  assert.equal(stated.eligible, false);
 
   const evidenced = target.evaluate(
     { title: 'Software Development Engineer', location: 'Toronto, ON',
