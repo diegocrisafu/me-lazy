@@ -268,14 +268,30 @@ function requiresAdvancedDegree(title = '', description = '') {
 /* ─────────── LOCATION ─────────── */
 
 const CA_HINTS = /\b(canada|canadian|ontario|quebec|québec|british columbia|alberta|toronto|montr[eé]al|vancouver|ottawa|waterloo|calgary|edmonton|halifax|winnipeg|mississauga|markham|CAN\b|,\s*ON\b|,\s*QC\b|,\s*BC\b|,\s*AB\b)/i;
-const US_HINTS = /\b(united states|usa|u\.s\.|new york|california|seattle|san francisco|austin|boston|chicago|texas|washington|USA\b|,\s*NY\b|,\s*CA\b|,\s*WA\b|,\s*TX\b|,\s*MA\b|,\s*IL\b)/i;
+// \bUS\b matters on its own: "Remote - US" and "Remote (US)" were landing in
+// OTHER and being filtered out with everything foreign, which quietly threw
+// away most of the remote market.
+const US_HINTS = /\b(united states|usa|u\.s\.?a?|new york|california|seattle|san francisco|austin|boston|chicago|denver|atlanta|texas|washington)\b/i;
+// The bare acronym is matched case-sensitively, because /\bus\b/i also
+// matches the English word in "join us" and would call every such posting
+// American.
+const US_ABBR = /\b(US|U\.S\.|USA)\b|,\s*(?:NY|CA|WA|TX|MA|IL|CO|GA|NC|VA|PA|FL|NJ|UT|OR|AZ)\b/;
 const REMOTE_HINTS = /\bremote\b|\bwork\s*from\s*home\b|\bdistributed\b|\bt[ée]l[ée]travail\b/i;
 
-function classifyLocation(job) {
+/**
+ * @param job
+ * @param homeRegion  the employer's own country, used when a remote posting
+ *   names no location at all — a bare "Remote" at a US company is a US role,
+ *   and calling it OTHER filtered it out.
+ */
+function classifyLocation(job, homeRegion) {
   const s = `${job.location || ''} ${job.title || ''}`;
   const remote = REMOTE_HINTS.test(s) || Boolean(job.remote);
   if (CA_HINTS.test(s)) return { region: 'CA', remote };
-  if (US_HINTS.test(s)) return { region: 'US', remote };
+  if (US_HINTS.test(s) || US_ABBR.test(s)) return { region: 'US', remote };
+  if (remote && (homeRegion === 'CA' || homeRegion === 'US')) {
+    return { region: homeRegion, remote, inferred: true };
+  }
   return { region: 'OTHER', remote };
 }
 
@@ -291,8 +307,27 @@ const PREFERRED_CITIES = [
   { re: /ottawa|waterloo|kitchener/i, weight: 1.04 }
 ];
 
-function cityWeight(location = '') {
+/**
+ * @param location
+ * @param loc  the classifyLocation result, when available
+ *
+ * A remote Canadian role beats a Toronto one: same access to the job, no
+ * move, and no work-authorisation question. Remote in the US is worth
+ * pursuing but is not the same thing — the company still has to be willing
+ * to put a Canadian on its payroll, so it ranks below the Canadian cities
+ * rather than above them.
+ */
+function cityWeight(location = '', loc = null) {
   const s = String(location);
+  const remote = loc ? loc.remote : REMOTE_HINTS.test(s);
+
+  if (remote) {
+    const region = loc ? loc.region
+      : (CA_HINTS.test(s) ? 'CA' : (US_HINTS.test(s) || US_ABBR.test(s)) ? 'US' : 'OTHER');
+    if (region === 'CA') return 1.16;
+    if (region === 'US') return 1.06;
+    return 1.03;
+  }
   for (const { re, weight } of PREFERRED_CITIES) if (re.test(s)) return weight;
   return 1.0;
 }
@@ -329,7 +364,9 @@ function evaluate(job, salary, rules = {}) {
   const reasons = [];
 
   let level = classifyLevel(job.title, job.description);
-  const location = classifyLocation(job);
+  // job.companyCountry lets a bare "Remote" inherit the employer's country
+  // instead of falling into OTHER and being filtered out.
+  const location = classifyLocation(job, job.companyCountry || rules.homeRegion);
   const years = requiredYears(job.description);
   const returnToSchool = requiresReturnToSchool(job.description);
   const advancedDegree = requiresAdvancedDegree(job.title, job.description);
@@ -412,8 +449,10 @@ function oaPriority(job, evaluation, matchScore = 0, opts = {}) {
     ? (evaluation.location.region === 'CA' ? 1.0 : 0.82)
     : 1.0;
 
-  // Within a region, rank the cities that are actually convenient.
-  const cityBoost = cityWeight(job.location);
+  // Within a region, rank the places that are actually convenient — and
+  // remote-in-Canada above all of them, since it needs no move and raises
+  // no work-authorisation question.
+  const cityBoost = cityWeight(job.location, evaluation.location);
 
   // Quant and big tech automate assessments far more consistently than
   // the median employer, and that is already priced into oaLikelihood —

@@ -76,7 +76,10 @@
       }
 
       const salary = resolveSalary(job, rules);
-      const ev = evaluate(job, salary, rules);
+      // The employer's own country, so a posting that says only "Remote"
+      // is read as remote-in-that-country rather than falling into OTHER
+      // and being filtered out with everything overseas.
+      const ev = evaluate({ ...job, companyCountry: company.country }, salary, rules);
 
       if (!ev.eligible) {
         for (const r of ev.reasons) rejected[r] = (rejected[r] || 0) + 1;

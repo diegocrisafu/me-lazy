@@ -25,6 +25,74 @@
 
 const COMPANIES = [
 
+  /* ── Remote-friendly and well-known, added after probing each ATS
+     endpoint rather than guessing a token. Every one of these returned
+     live postings. Several are remote-first, which now ranks above
+     Toronto for a Canadian applicant. ── */
+  { id:'doordash', name:'DoorDash', tier:1, country:'US', sector:'tech', ats:'greenhouse',
+    token:'doordashusa', verified:true, jobs:456,
+    oa:{ likelihood:0.8, platform:'CodeSignal', note:'Heavy new-grad pipeline, remote roles' } },
+  { id:'mongodb', name:'MongoDB', tier:1, country:'US', sector:'tech', ats:'greenhouse',
+    token:'mongodb', verified:true, jobs:415,
+    oa:{ likelihood:0.7, platform:'HackerRank', note:'Remote-friendly, hires in Canada' } },
+  { id:'elastic', name:'Elastic', tier:1, country:'US', sector:'tech', ats:'greenhouse',
+    token:'elastic', verified:true, jobs:365,
+    oa:{ likelihood:0.6, platform:'CodeSignal', note:'Distributed by design, hires remote' } },
+  { id:'toast', name:'Toast', tier:1, country:'US', sector:'tech', ats:'greenhouse',
+    token:'toast', verified:true, jobs:315,
+    oa:{ likelihood:0.7, platform:'CodeSignal', note:'Remote-first' } },
+  { id:'pinterest', name:'Pinterest', tier:1, country:'US', sector:'tech', ats:'greenhouse',
+    token:'pinterest', verified:true, jobs:189,
+    oa:{ likelihood:0.75, platform:'CodeSignal', note:'Toronto office plus remote' } },
+  { id:'airbnb', name:'Airbnb', tier:1, country:'US', sector:'tech', ats:'greenhouse',
+    token:'airbnb', verified:true, jobs:168,
+    oa:{ likelihood:0.7, platform:'CodeSignal', note:'Live anywhere policy' } },
+  { id:'notion', name:'Notion', tier:1, country:'US', sector:'tech', ats:'ashby',
+    org:'notion', verified:true, jobs:133,
+    oa:{ likelihood:0.7, platform:'CodeSignal' } },
+  { id:'ramp', name:'Ramp', tier:1, country:'US', sector:'fintech', ats:'ashby',
+    org:'ramp', verified:true, jobs:142,
+    oa:{ likelihood:0.8, platform:'CodeSignal', note:'Pays well, fast pipeline' } },
+  { id:'asana', name:'Asana', tier:1, country:'US', sector:'tech', ats:'greenhouse',
+    token:'asana', verified:true, jobs:115,
+    oa:{ likelihood:0.7, platform:'CodeSignal' } },
+  { id:'plaid', name:'Plaid', tier:1, country:'US', sector:'fintech', ats:'ashby',
+    org:'plaid', verified:true, jobs:103,
+    oa:{ likelihood:0.75, platform:'CodeSignal' } },
+  { id:'docker', name:'Docker', tier:2, country:'US', sector:'tech', ats:'ashby',
+    org:'docker', verified:true, jobs:62,
+    oa:{ likelihood:0.6, platform:'CodeSignal', note:'All-remote' } },
+  { id:'pagerduty', name:'PagerDuty', tier:2, country:'US', sector:'tech', ats:'greenhouse',
+    token:'pagerduty', verified:true, jobs:43,
+    oa:{ likelihood:0.6, platform:'HackerRank', note:'Toronto office, remote-friendly' } },
+  { id:'dropbox', name:'Dropbox', tier:1, country:'US', sector:'tech', ats:'greenhouse',
+    token:'dropbox', verified:true, jobs:42,
+    oa:{ likelihood:0.65, platform:'CodeSignal', note:'Virtual first' } },
+  { id:'later', name:'Later', tier:2, country:'CA', sector:'tech', ats:'greenhouse',
+    token:'later', verified:true, jobs:39,
+    oa:{ likelihood:0.5, platform:'CodeSignal', note:'Vancouver, remote in Canada' } },
+  { id:'jobber', name:'Jobber', tier:2, country:'CA', sector:'tech', ats:'ashby',
+    org:'jobber', verified:true, jobs:35,
+    oa:{ likelihood:0.55, platform:'CodeSignal', note:'Remote across Canada' } },
+  { id:'confluent', name:'Confluent', tier:1, country:'US', sector:'tech', ats:'ashby',
+    org:'confluent', verified:true, jobs:22,
+    oa:{ likelihood:0.7, platform:'CodeSignal', note:'Remote-first, Kafka' } },
+  { id:'alchemy', name:'Alchemy', tier:2, country:'US', sector:'fintech', ats:'ashby',
+    org:'alchemy', verified:true, jobs:21,
+    oa:{ likelihood:0.7, platform:'CodeSignal' } },
+  { id:'sourcegraph', name:'Sourcegraph', tier:2, country:'US', sector:'tech', ats:'greenhouse',
+    token:'sourcegraph91', verified:true, jobs:9,
+    oa:{ likelihood:0.6, platform:'CodeSignal', note:'All-remote' } },
+  { id:'waveapps', name:'Wave', tier:2, country:'CA', sector:'fintech', ats:'lever',
+    token:'waveapps', verified:true, jobs:8,
+    oa:{ likelihood:0.5, platform:'HackerRank', note:'Toronto' } },
+  { id:'circleci', name:'CircleCI', tier:2, country:'US', sector:'tech', ats:'greenhouse',
+    token:'circleci', verified:true, jobs:7,
+    oa:{ likelihood:0.6, platform:'CodeSignal', note:'All-remote' } },
+  { id:'thinkific', name:'Thinkific', tier:3, country:'CA', sector:'tech', ats:'ashby',
+    org:'thinkific', verified:true, jobs:1,
+    oa:{ likelihood:0.45, platform:'CodeSignal', note:'Vancouver, remote in Canada' } },
+
   /* ═══════════ TIER 1 — CANADIAN BANKS ═══════════ */
 
   { id:'td', name:'TD Bank', tier:1, country:'CA', sector:'bank',
@@ -186,17 +254,9 @@ const COMPANIES = [
     ats:'greenhouse', token:'scaleai', verified:true, jobs:218,
     oa:{ likelihood:0.6, platform:'CodeSignal' } },
 
-  { id:'pinterest', name:'Pinterest', tier:2, country:'US', sector:'bigtech',
-    ats:'greenhouse', token:'pinterest', verified:true, jobs:216,
-    oa:{ likelihood:0.6, platform:'CodeSignal' } },
-
   { id:'affirm', name:'Affirm', tier:2, country:'US', sector:'fintech',
     ats:'greenhouse', token:'affirm', verified:true, jobs:204,
     oa:{ likelihood:0.65, platform:'CodeSignal', note:'Hires remote in Canada' } },
-
-  { id:'airbnb', name:'Airbnb', tier:2, country:'US', sector:'bigtech',
-    ats:'greenhouse', token:'airbnb', verified:true, jobs:186,
-    oa:{ likelihood:0.55, platform:'CodeSignal' } },
 
   { id:'coinbase', name:'Coinbase', tier:2, country:'US', sector:'fintech',
     ats:'greenhouse', token:'coinbase', verified:true, jobs:179,
@@ -210,10 +270,6 @@ const COMPANIES = [
     ats:'greenhouse', token:'reddit', verified:true, jobs:153,
     oa:{ likelihood:0.6, platform:'CodeSignal', note:'Has a Toronto office' } },
 
-  { id:'ramp', name:'Ramp', tier:2, country:'US', sector:'fintech',
-    ats:'ashby', org:'ramp', verified:true, jobs:135,
-    oa:{ likelihood:0.65, platform:'CodeSignal' } },
-
   { id:'robinhood', name:'Robinhood', tier:2, country:'US', sector:'fintech',
     ats:'greenhouse', token:'robinhood', verified:true, jobs:130,
     oa:{ likelihood:0.75, platform:'CodeSignal' } },
@@ -221,10 +277,6 @@ const COMPANIES = [
   { id:'instacart', name:'Instacart', tier:2, country:'US', sector:'bigtech',
     ats:'greenhouse', token:'instacart', verified:true, jobs:121,
     oa:{ likelihood:0.6, platform:'CodeSignal', note:'Large Toronto engineering office' } },
-
-  { id:'plaid', name:'Plaid', tier:2, country:'US', sector:'fintech',
-    ats:'ashby', org:'plaid', verified:true, jobs:101,
-    oa:{ likelihood:0.6, platform:'CodeSignal' } },
 
   { id:'discord', name:'Discord', tier:2, country:'US', sector:'bigtech',
     ats:'greenhouse', token:'discord', verified:true, jobs:52,
@@ -647,7 +699,7 @@ const COMPANIES = [
 ];
 
 /** Canada first, then tier, then assessment likelihood. */
-function prioritized(companies = COMPANIES, opts = {}) {
+function prioritized(companies = UNIQUE_COMPANIES, opts = {}) {
   const { canadaFirst = true, includeUnverified = true } = opts;
   return companies
     .filter(c => includeUnverified || c.verified !== false)
@@ -659,7 +711,7 @@ function prioritized(companies = COMPANIES, opts = {}) {
     });
 }
 
-function byId(id) { return COMPANIES.find(c => c.id === id) || null; }
+function byId(id) { return UNIQUE_COMPANIES.find(c => c.id === id) || null; }
 
 /** Employers whose board URL redirects away from a fillable form. */
 function canAutoApply(companyId) {
@@ -680,7 +732,24 @@ function stats() {
   return out;
 }
 
-const __companies = { COMPANIES, prioritized, byId, stats, canAutoApply };
+/* The list is edited by hand and by tooling, and the same employer had been
+   entered up to three times — Cloudflare, Twilio, Okta, Spotify and others.
+   Every duplicate means the same postings discovered again, ranked again and
+   competing with themselves for the per-employer daily cap. Kept: the record
+   with the most postings, which is the most recently refreshed one. */
+function dedupeById(list) {
+  const best = new Map();
+  for (const c of list) {
+    const prev = best.get(c.id);
+    if (!prev || (c.jobs || 0) > (prev.jobs || 0)) best.set(c.id, c);
+  }
+  return [...best.values()];
+}
+
+const UNIQUE_COMPANIES = dedupeById(COMPANIES);
+
+const __companies = { COMPANIES: UNIQUE_COMPANIES, ALL_COMPANY_ROWS: COMPANIES,
+                      dedupeById, prioritized, byId, stats, canAutoApply };
 
 // Node (tests) and browser / service-worker (importScripts or <script>)
 if (typeof module !== 'undefined' && module.exports) module.exports = __companies;
