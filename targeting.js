@@ -356,6 +356,28 @@ const US_HINTS = /\b(united states|usa|u\.s\.?a?|new york|california|seattle|san
 const US_ABBR = /\b(US|U\.S\.|USA)\b|,\s*(?:NY|CA|WA|TX|MA|IL|CO|GA|NC|VA|PA|FL|NJ|UT|OR|AZ)\b/;
 const REMOTE_HINTS = /\bremote\b|\bwork\s*from\s*home\b|\bdistributed\b|\bt[ée]l[ée]travail\b/i;
 
+/* Places that settle the question on their own. Without this, "Remote —
+   London" at a US-headquartered company inherited the company's country and
+   was pursued: seven ElevenLabs roles in the UK were sitting in the queue. */
+const OVERSEAS = new RegExp('\\b(' + [
+  'united\\s*kingdom', 'england', 'scotland', 'wales', 'ireland', 'london',
+  'manchester', 'edinburgh', 'dublin', 'berlin', 'munich', 'hamburg', 'germany',
+  'france', 'paris', 'netherlands', 'amsterdam', 'spain', 'madrid', 'barcelona',
+  'portugal', 'lisbon', 'switzerland', 'zurich', 'geneva', 'sweden', 'stockholm',
+  'denmark', 'copenhagen', 'norway', 'oslo', 'poland', 'warsaw', 'krakow',
+  'italy', 'milan', 'rome', 'austria', 'vienna', 'belgium', 'brussels',
+  'czech', 'prague', 'romania', 'bucharest',
+  'india', 'bangalore', 'bengaluru', 'hyderabad', 'pune', 'mumbai', 'delhi',
+  'gurgaon', 'noida', 'chennai',
+  'singapore', 'japan', 'tokyo', 'china', 'beijing', 'shanghai', 'shenzhen',
+  'hong\\s*kong', 'korea', 'seoul', 'taiwan', 'taipei',
+  'australia', 'sydney', 'melbourne', 'new\\s*zealand', 'auckland',
+  'brazil', 'sao\\s*paulo', 'mexico\\s*city', 'argentina', 'buenos\\s*aires',
+  'colombia', 'bogota', 'chile', 'santiago',
+  'israel', 'tel\\s*aviv', 'dubai', 'abu\\s*dhabi', 'uae', 'south\\s*africa',
+  'cape\\s*town', 'johannesburg', 'emea', 'apac', 'latam'
+].join('|') + ')\\b', 'i');
+
 /**
  * @param job
  * @param homeRegion  the employer's own country, used when a remote posting
@@ -367,6 +389,13 @@ function classifyLocation(job, homeRegion) {
   const remote = REMOTE_HINTS.test(s) || Boolean(job.remote);
   if (CA_HINTS.test(s)) return { region: 'CA', remote };
   if (US_HINTS.test(s) || US_ABBR.test(s)) return { region: 'US', remote };
+
+  // A named place outside North America settles it, whatever the employer's
+  // own country is. "Remote — London" at a US company is a London job.
+  if (OVERSEAS.test(s)) return { region: 'OTHER', remote, overseas: true };
+
+  // Only a posting that names no location at all falls back to the
+  // employer's country.
   if (remote && (homeRegion === 'CA' || homeRegion === 'US')) {
     return { region: homeRegion, remote, inferred: true };
   }

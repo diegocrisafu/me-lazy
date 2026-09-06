@@ -831,3 +831,22 @@ test('"authorised to work without sponsorship" is not the sponsorship question',
   assert.equal(answers.answerFor(plain, ca).value, 'No');
   assert.equal(answers.answerFor(plain, us).value, 'Yes');
 });
+
+test('a named overseas place beats the employer country fallback', () => {
+  // A bare "Remote" inherits the employer's country, which is what makes
+  // most remote postings reachable at all. But a posting that names London
+  // is a London job however American the company is — seven ElevenLabs
+  // roles in the UK were sitting in the queue because of this.
+  assert.equal(target.classifyLocation({ location: 'London' }, 'US').region, 'OTHER');
+  assert.equal(target.classifyLocation({ location: 'United Kingdom' }, 'US').region, 'OTHER');
+  assert.equal(target.classifyLocation({ location: 'Remote - EMEA' }, 'US').region, 'OTHER');
+  assert.equal(target.classifyLocation({ location: 'Bangalore, India' }, 'US').region, 'OTHER');
+
+  // The fallback still applies where no place is named.
+  assert.equal(target.classifyLocation({ location: 'Remote' }, 'US').region, 'US');
+  assert.equal(target.classifyLocation({ location: 'Remote' }, 'CA').region, 'CA');
+
+  // And named North American places are unaffected.
+  assert.equal(target.classifyLocation({ location: 'Toronto, ON' }).region, 'CA');
+  assert.equal(target.classifyLocation({ location: 'New York, NY' }).region, 'US');
+});

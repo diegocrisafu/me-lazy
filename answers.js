@@ -69,6 +69,21 @@ const ANSWER_RULES = [
     re: /security\s*clearance|habilitation\s*de\s*s[ée]curit[ée]/i,
     from: 'securityClearance' },
 
+  /* "Are you a resident of California?" — a state-level residency question,
+     asked for CCPA notices. Montreal is not any US state, and the polarity
+     logic only knows countries. */
+  { id: 'usStateResidency',
+    re: /resident\s*(?:of|in)\s*(?:the\s*state\s*of\s*)?(?:california|colorado|new\s*york|washington|illinois|texas|massachusetts|virginia|connecticut|utah|oregon)\b/i,
+    from: 'usStateResidency' },
+
+  /* Government-service screening, standard at defence-adjacent employers. */
+  { id: 'governmentEmployee',
+    re: /(?:current\s*or\s*former\s*)?(?:civilian\s*or\s*military\s*)?employee\s*of\s*the\s*(?:united\s*states|u\.?s\.?)\s*government|federal\s*(?:government\s*)?employ(?:ee|ment)\b/i,
+    from: 'governmentEmployee' },
+  { id: 'postGovernmentRestrictions',
+    re: /restrictions?\s*on\s*post[-\s]?government\s*employment|post[-\s]?government\s*employment\s*restrictions?/i,
+    from: 'postGovernmentRestrictions' },
+
   { id: 'age18', re: /(?:at\s*least|over)\s*18|age\s*of\s*majority/i, from: 'over18' },
 
 /* ── Location and logistics the blocked list surfaced ── */
@@ -216,12 +231,12 @@ const ANSWER_RULES = [
 
   /* ── Free text ── */
   { id: 'whyCompany', longform: true,
-    re: /why\s*(?:do\s*you\s*want\s*to\s*)?(?:work|join)|why\s*(?:this\s*)?(?:company|us|role)|what\s*(?:interests|excites)|why\s*are\s*you\s*interested|what\s*(?:draws|attracts)\s*you|why\s*(?:would\s*you\s*)?(?:like|want)\s*to|^\s*why\s+(?!do|did|does|are|is|was|were|would|should|have|has|you|we|the|this|that|not|now|leave|leaving)[a-z][\w&.'-]{1,24}(?:\s+[a-z][\w&.'-]{1,24})?\s*\??\s*\*?\s*$/i },
+    re: /why\s*(?:do\s*you\s*want\s*to\s*)?(?:work|join)|why\s*(?:this\s*)?(?:company|us|role)|what\s*(?:interests|excites)|why\s*are\s*you\s*(?:interested|excited)|what\s*(?:draws|attracts)\s*you|excited\s*to\s*join|why\s*(?:would\s*you\s*)?(?:like|want)\s*to|^\s*why\s+(?!do|did|does|are|is|was|were|would|should|have|has|you|we|the|this|that|not|now|leave|leaving)[a-z][\w&.'-]{1,24}(?:\s+[a-z][\w&.'-]{1,24})?\s*\??\s*\*?\s*$/i },
   { id: 'coverLetter', longform: true,
     re: /cover\s*letter|lettre\s*de\s*motivation|additional\s*information|anything\s*else/i },
   { id: 'strengths', longform: true,
     not: /race|ethnic|gender|orientation|disab|veteran|demographic/i,
-    re: /greatest\s*strength|tell\s*us\s*(?:something\s*)?about\s*yourself|describe\s*yourself|tell\s*us\s*something[^?]{0,60}(?:resume|r[ée]sum[ée]|cv)\b|(?:not|n't)\s*(?:find\s*)?on\s*(?:your\s*)?(?:resume|r[ée]sum[ée]|cv)\b|why\s*(?:do\s*you\s*think\s*)?(?:are\s*)?you[^?]{0,30}\b(?:good\s*fit|right\s*fit|a\s*fit|right\s*(?:person|candidate))\b|what\s*makes\s*you[^?]{0,40}(?:candidate|fit)/i },
+    re: /greatest\s*strength|tell\s*us\s*(?:something\s*)?about\s*yourself|describe\s*yourself|tell\s*us\s*something[^?]{0,60}(?:resume|r[ée]sum[ée]|cv)\b|(?:not|n't)\s*(?:find\s*)?on\s*(?:your\s*)?(?:resume|r[ée]sum[ée]|cv)\b|why\s*(?:do\s*you\s*think\s*)?(?:are\s*)?you[^?]{0,30}\b(?:good\s*fit|right\s*fit|a\s*fit|right\s*(?:person|candidate))\b|what\s*makes\s*you[^?]{0,40}(?:candidate|fit)|what\s*qualities[^?]{0,60}(?:great|good|strong|successful)|how\s*do\s*your\s*skills\s*and\s*experience/i },
   { id: 'project', longform: true,
     re: /(?:favourite|favorite|interesting|challenging|recent|significant)\b[^?]{0,30}\bproject\b|describe\s*(?:a|your)[^?]{0,40}\bproject\b|proud\s*of|technical\s*challenge|describe\s*your\s*experience\s*(?:working\s*)?(?:with|in|on)\b|tell\s*us\s*about\s*(?:a|your)\s*(?:time|experience)/i },
 
@@ -236,6 +251,10 @@ const ANSWER_RULES = [
   { id: 'veteran',    demographic: true, re: /veteran|militaire/i },
   { id: 'disability', demographic: true, re: /disab|handicap/i },
   { id: 'indigenous', demographic: true, re: /indigenous|aboriginal|autochtone|first\s*nations/i },
+  /* Being shared with an employer's partner or talent network is opt-in and
+     only widens where the application is seen. */
+  { id: 'shareWithPartners', consent: true,
+    re: /share\s*my\s*(?:resume|r[ée]sum[ée]|profile|contact\s*information)[^?]{0,70}(?:partners?|network|affiliates?|third\s*part)|talent\s*(?:network|community)|consider\s*me\s*for\s*other\s*(?:roles|positions|opportunities)/i },
   { id: 'policyConsent', consent: true,
     re: /\b(?:ai|privacy|applicant|candidate|recruitment|data)\s*(?:use\s*)?policy\b|policy\s*for\s*application|terms\s*(?:and|&)\s*conditions|code\s*of\s*conduct/i },
   { id: 'lgbtq',      demographic: true, re: /lgbt|sexual\s*orientation|orientation\s*sexuelle/i },
@@ -385,6 +404,10 @@ function defaultAnswers(profile = {}, cvFacts = {}, ctx = {}) {
     sponsorshipUS: profile.sponsorshipUS ?? '',
     citizenship: profile.citizenship ?? '',
     securityClearance: profile.securityClearance ?? '',
+    // Montreal is not a US state.
+    usStateResidency: 'No',
+    governmentEmployee: profile.governmentEmployee || 'No',
+    postGovernmentRestrictions: profile.postGovernmentRestrictions || 'No',
     over18: profile.over18 || 'Yes',
 
     relocate: profile.relocate || 'Yes',
