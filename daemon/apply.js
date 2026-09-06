@@ -1226,6 +1226,11 @@ async function applyTo(ctxBrowser, record, opts = {}) {
       // Only reach into the page for controls that could actually take a
       // value. Skipping the rest here — rather than inside fillField after
       // two round-trips — is what keeps a large form inside the budget.
+      if (survey.some(f => f.visible && !f.disabled &&
+            !['hidden', 'submit', 'button', 'image', 'reset'].includes(f.type))) {
+        ctx.sawFields = true;
+      }
+
       const worth = survey.filter(f =>
         !f.disabled && f.visible && !f.hasValue && !f.isProxy &&
         !['hidden', 'submit', 'button', 'image', 'reset', 'file'].includes(f.type));
@@ -1318,7 +1323,12 @@ async function applyTo(ctxBrowser, record, opts = {}) {
     let blocked = null;
     let submitted = false;
 
-    if (!filled.length) {
+    // "Nothing was filled" and "there is no form" are not the same thing. A
+    // site that already knows you — Amazon prefills its apply flow from the
+    // account profile — presents a complete form with nothing left to do,
+    // and treating that as a missing form threw away 178 postings and, worse,
+    // parked the whole employer.
+    if (!filled.length && !ctx.sawFields) {
       blocked = 'no form found on the page — nothing was filled';
     } else if (criticalGaps.length) {
       blocked = 'unanswered: ' + criticalGaps.map(s => s.label).join('; ');
