@@ -236,6 +236,28 @@ async function applyOne(id, settings = store.getSettings()) {
     // unanswerable SAT score. The verdict is about the employer, so apply it
     // to the employer, and record what it wants so answering once brings all
     // of them back.
+    // "No form found" is the most employer-wide verdict there is — the board
+    // redirects, or the destination is a listing page — and it was the one
+    // case that did not propagate, because it produces no blocking questions
+    // to record. Eight Squarepoint postings were attempted one at a time
+    // over an hour, each spending a pacing slot to rediscover the same fact.
+    const noForm = /no form found/i.test(rec.scoutReason || '');
+    if (noForm) {
+      const siblings = Object.values(apps).filter(o =>
+        o.companyId === rec.companyId && o.id !== rec.id && o.status === 'queued');
+      for (const o of siblings) {
+        tracker.applyStatus(o, 'scouted', { reason: rec.scoutReason });
+        o.scoutReason = rec.scoutReason;
+        o.autoApply = false;
+        apps[o.id] = o;
+      }
+      rec.autoApply = false;
+      if (siblings.length) {
+        log(`           ${siblings.length} more ${rec.company} posting` +
+            `${siblings.length === 1 ? '' : 's'} parked — the board has no fillable form`);
+      }
+    }
+
     if (rec.scoutBlockers.length) {
       const siblings = Object.values(apps).filter(o =>
         o.companyId === rec.companyId && o.id !== rec.id && o.status === 'queued');
