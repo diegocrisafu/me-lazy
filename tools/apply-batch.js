@@ -72,7 +72,30 @@ function ranker(job) {
     .sort((x, y) => y.n - x.n).map(x => x.b);
 }
 
+const LOCK = path.join(__dirname, '..', 'data', '.apply-batch.lock');
+
+/* One at a time. Two copies racing overwrite each other's store writes —
+   a run reported eight submissions and the store kept none of them — and
+   fight over the same browser profile. */
+function takeLock() {
+  try {
+    const prev = Number(fs.readFileSync(LOCK, 'utf8'));
+    if (prev && prev !== process.pid) {
+      try { process.kill(prev, 0); return false; }   // still alive
+      catch { /* stale */ }
+    }
+  } catch { /* no lock file */ }
+  fs.writeFileSync(LOCK, String(process.pid));
+  return true;
+}
+
 (async () => {
+  if (!takeLock()) {
+    console.log('another apply-batch is already running — stop it first');
+    process.exit(1);
+  }
+  process.on('exit', () => { try { fs.unlinkSync(LOCK); } catch {} });
+
   const target = Number(process.argv[2] || 15);
   const perEmployer = Number(process.env.PER_EMPLOYER || 3);
 
