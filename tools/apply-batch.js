@@ -183,8 +183,9 @@ function ranker(job) {
       console.log(`  ${String(sent).padStart(2)}. SENT  ${x.tier}  ${String(job.company).padEnd(14)} ` +
                   `${String(job.title).slice(0, 40)}`);
     } else {
+      const why = result.blocked || result.error || 'no reason recorded';
       console.log(`      --    ${x.tier}  ${String(job.company).padEnd(14)} ` +
-                  `${String(job.title).slice(0, 30)}  (${String(result.blocked).slice(0, 44)})`);
+                  `${String(job.title).slice(0, 30)}  (${String(why).replace(/\s+/g, ' ').slice(0, 46)})`);
     }
   }
 

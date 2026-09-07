@@ -375,6 +375,8 @@ const ANSWER_RULES = [
 
   { id: 'shareWithPartners', consent: true,
     re: /share\s*my\s*(?:resume|r[ée]sum[ée]|profile|contact\s*information)[^?]{0,70}(?:partners?|network|affiliates?|third\s*part)|talent\s*(?:network|community)|consider\s*me\s*for\s*other\s*(?:roles|positions|opportunities)/i },
+  { id: 'accuracyAttestation', consent: true,
+    re: /by\s*submitting[^?]{0,60}(?:confirm|certify|acknowledge|agree)|information\s*(?:provided|given)[^?]{0,40}(?:accurate|true|complete)|certify\s*that\s*(?:the|all)[^?]{0,40}(?:information|statements)/i },
   { id: 'policyConsent', consent: true,
     re: /\b(?:ai|privacy|applicant|candidate|recruitment|data)\s*(?:use\s*)?policy\b|policy\s*for\s*application|terms\s*(?:and|&)\s*conditions|code\s*of\s*conduct|arbitration\s*agreement|agreement\s*to\s*arbitrate|please\s*read\s*the[^?]{0,40}agreement/i },
   { id: 'lgbtq',      demographic: true, re: /lgbt|sexual\s*orientation|orientation\s*sexuelle/i },

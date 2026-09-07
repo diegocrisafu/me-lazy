@@ -1362,7 +1362,15 @@ async function visibleFieldCount(page) {
 
 async function openForm(page, record) {
   const url = record.applyUrl || record.url;
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  // Greenhouse returns an HTTP/2 protocol error often enough that losing the
+  // application to it is worth one retry.
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+  } catch (e) {
+    if (!/ERR_HTTP2|ERR_NETWORK|ERR_CONNECTION|timeout/i.test(e.message)) throw e;
+    await page.waitForTimeout(2500);
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+  }
 
   // Ashby and a few others render the form from JavaScript after the
   // document is ready. A fixed 1.5s was enough for the inputs but not for
