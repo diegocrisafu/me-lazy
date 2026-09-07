@@ -1,0 +1,7 @@
+# Diego Crisafulli — diegocrisafulli.dev
+User-agent: *
+Allow: /
+Disallow: /data/
+Disallow: /cv/
+
+Sitemap: https://diegocrisafulli.dev/sitemap.xml

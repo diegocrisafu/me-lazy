@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Diego Crisafulli">
+  <title>Diego Crisafulli</title>
+  <rect width="64" height="64" rx="12" fill="#0d0f14"/>
+  <!-- A point field, the same idea as the hero: five years of simulation,
+       point clouds and digital twins. -->
+  <g fill="#4a86e8">
+    <circle cx="18" cy="20" r="2.6"/><circle cx="32" cy="15" r="2.2"/><circle cx="46" cy="21" r="2.6"/>
+    <circle cx="14" cy="34" r="2.2"/><circle cx="32" cy="30" r="3.2"/><circle cx="50" cy="35" r="2.2"/>
+    <circle cx="19" cy="47" r="2.6"/><circle cx="33" cy="49" r="2.2"/><circle cx="45" cy="45" r="2.6"/>
+  </g>
+  <g stroke="#2f9e86" stroke-width="1.4" opacity=".75">
+    <line x1="18" y1="20" x2="32" y2="30"/><line x1="46" y1="21" x2="32" y2="30"/>
+    <line x1="32" y1="30" x2="19" y2="47"/><line x1="32" y1="30" x2="45" y2="45"/>
+  </g>
+</svg>

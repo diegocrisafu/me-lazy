@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />
+<title>Page Not Found | Diego Crisafulli</title>
+<meta name="description" content="That page does not exist. Links to the portfolio, the work history and the scouting report." />
+<meta name="robots" content="noindex, follow" />
+<link rel="canonical" href="https://diegocrisafulli.dev/404.html" />
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="/site/style.css" />
+<style>
+  .nf { min-height: 78vh; display: grid; place-items: center; text-align: center; padding: 40px 20px; }
+  .nf-code { font-family: var(--mono); font-size: 13px; letter-spacing: .16em;
+             text-transform: uppercase; color: var(--accent); margin: 0 0 10px; }
+  .nf h1 { font-family: var(--serif); font-size: clamp(40px, 8vw, 84px);
+           line-height: 1.02; margin: 0 0 16px; text-wrap: balance; }
+  .nf p { color: var(--ink-2); max-width: 46ch; margin: 0 auto 28px; line-height: 1.6; }
+  .nf-links { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  .nf-links a { font-family: var(--mono); font-size: 13px; text-decoration: none;
+                border: 1px solid var(--line-2); border-radius: 4px;
+                padding: 10px 16px; color: var(--ink); transition: border-color .18s, color .18s; }
+  .nf-links a:hover { border-color: var(--accent); color: var(--accent); }
+  @media (prefers-reduced-motion: reduce) { .nf-links a { transition: none; } }
+</style>
+</head>
+<body>
+<main class="nf">
+  <div>
+    <p class="nf-code">Error 404</p>
+    <h1>This page isn’t here</h1>
+    <p>The address doesn’t match anything on the site. It may have moved, or the link may have been mistyped.</p>
+    <nav class="nf-links" aria-label="Where to go instead">
+      <a href="/">Portfolio</a>
+      <a href="/#work">Work history</a>
+      <a href="/scouting.html">Scouting report</a>
+      <a href="/#contact">Get in touch</a>
+    </nav>
+  </div>
+</main>
+</body>
+</html>

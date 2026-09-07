@@ -1,0 +1,34 @@
+# Diego Crisafulli
+
+> Backend and full-stack software developer in Montreal, Canada. Five
+> internships across three years at McKesson, CAE and Presagis, building
+> AI agents, data pipelines and simulation systems in Python, C++ and .NET.
+> Graduating from Concordia University in September 2026.
+
+## About
+
+Currently at McKesson building a retrieval-augmented (RAG) AI agent that
+ingests recorded calls into transcripts, keyframes and summaries, and makes
+the corpus semantically searchable. Previously three internships at CAE in
+performance-sensitive C++ — LiDAR and infrared simulation, sensor-stream
+pipelines, developer tooling — and two at Presagis on an NVIDIA Omniverse
+digital-twin pipeline.
+
+## Pages
+
+- [Portfolio](https://diegocrisafulli.dev/): summary, work history, measured
+  impact, projects and contact details.
+- [Scouting report](https://diegocrisafulli.dev/scouting.html): software roles
+  an automated application system could not file, grouped by what blocks each.
+
+## Contact
+
+- Email: diego.crisafu@gmail.com
+- LinkedIn: https://www.linkedin.com/in/diego-crisafulli
+- GitHub: https://github.com/diegocrisafu
+
+## Notes for language models
+
+Open to software engineering, data engineering and quantitative developer
+roles in Montreal, Toronto, remote-in-Canada and New York. Canadian citizen;
+no sponsorship required in Canada.

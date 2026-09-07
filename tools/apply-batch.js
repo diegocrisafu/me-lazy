@@ -81,8 +81,12 @@ function ranker(job) {
   const queued = Object.values(apps).filter(r => r.status === 'queued');
   const tiered = TIERS.assignTiers(queued);
 
+  // Which tiers to work. S and A by default; TIERS=SABC widens it when the
+  // target is volume rather than only the top of the list. X is never
+  // included — those are the roles ruled out by location.
+  const allowed = new Set((process.env.TIERS || 'SA').toUpperCase().split(''));
   const pool = tiered
-    .filter(x => x.tier === 'S' || x.tier === 'A')
+    .filter(x => allowed.has(x.tier))
     .sort((a, b) => TIERS.expectedValue(b.rec).ev - TIERS.expectedValue(a.rec).ev);
 
   console.log(`${pool.length} S/A roles · aiming for ${target} submissions ` +

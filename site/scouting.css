@@ -1,0 +1,169 @@
+/* ═══════════════════════════════════════════
+   Scouting report
+
+   The portfolio is a document you read; this is
+   a queue you work. So the type gets smaller and
+   denser, the tier badge does the scanning, and
+   the reason sits under each role rather than
+   being something you hover to discover.
+
+   Tokens come from site/style.css — this only
+   adds what a work queue needs.
+   ═══════════════════════════════════════════ */
+
+.crumbs {
+  border-bottom: 1px solid var(--line);
+  background: var(--ground-2);
+  font-family: var(--mono);
+  font-size: 12px;
+}
+.crumbs ol {
+  list-style: none;
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 0;
+  color: var(--ink-3);
+}
+.crumbs li + li::before { content: '/'; margin-right: 8px; color: var(--line-2); }
+.crumbs a { color: var(--ink-2); text-decoration: none; }
+.crumbs a:hover { color: var(--accent); }
+
+.s-hero { padding: 56px 0 40px; border-bottom: 1px solid var(--line); }
+.s-hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(38px, 6vw, 68px);
+  line-height: 1.02;
+  margin: 6px 0 18px;
+  text-wrap: balance;
+}
+.s-lead {
+  max-width: 62ch;
+  color: var(--ink-2);
+  font-size: 16px;
+  line-height: 1.62;
+  margin: 0 0 26px;
+}
+
+.stats { list-style: none; display: flex; gap: 40px; margin: 0 0 22px; padding: 0; }
+.stats li { display: flex; flex-direction: column; gap: 2px; }
+.stat-n {
+  font-family: var(--serif);
+  font-size: 34px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.stat-l {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.jump { font-size: 13px; color: var(--ink-3); margin: 0; }
+.jump a { color: var(--ink-2); }
+
+.group { padding: 44px 0 8px; border-bottom: 1px solid var(--line); }
+.group:last-of-type { border-bottom: 0; }
+.group-head { display: flex; align-items: baseline; gap: 12px; }
+.group-head h2 {
+  font-family: var(--serif);
+  font-size: clamp(24px, 3.2vw, 34px);
+  margin: 0;
+}
+.count {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  padding: 2px 9px;
+  font-variant-numeric: tabular-nums;
+}
+.group-lead {
+  max-width: 66ch;
+  color: var(--ink-2);
+  font-size: 14.5px;
+  line-height: 1.6;
+  margin: 10px 0 24px;
+}
+
+.roles { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+
+.role {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--line-2);
+  padding: 14px 16px;
+  transition: border-color .18s ease, background .18s ease;
+}
+.role:hover { background: var(--ground-2); border-left-color: var(--accent); }
+
+.role-head { display: flex; gap: 12px; align-items: flex-start; }
+
+/* The badge is the scanning device, so it carries a letter and a colour and
+   never colour alone. */
+.tier {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1;
+  padding: 5px 7px;
+  border-radius: 3px;
+  border: 1px solid;
+  flex: 0 0 auto;
+}
+.tier-S { color: #f2f4f8; background: #2a3a58; border-color: #4a86e8; }
+.tier-A { color: #cfe0ff; background: #1b2c49; border-color: #365f9e; }
+.tier-B { color: #a8b1c2; background: #1a1f2b; border-color: #313949; }
+.tier-C { color: #6e7788; background: #14171f; border-color: #232936; }
+
+.role-id { min-width: 0; }
+.role-title { font-size: 15px; font-weight: 500; margin: 0 0 3px; line-height: 1.35; }
+.role-title a { color: var(--ink); text-decoration: none; }
+.role-title a:hover { color: var(--accent); text-decoration: underline; }
+.role-meta {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-3);
+  margin: 0;
+}
+.role-why {
+  font-size: 13px;
+  color: var(--ink-2);
+  margin: 9px 0 0 38px;
+  line-height: 1.5;
+  max-width: 78ch;
+}
+.role-cmd { margin: 7px 0 0 38px; }
+.role-cmd code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1px solid #2c4470;
+  border-radius: 3px;
+  padding: 3px 7px;
+  display: inline-block;
+  overflow-wrap: anywhere;
+}
+
+.more { font-family: var(--mono); font-size: 12px; color: var(--ink-3); margin: 14px 0 0; }
+
+.s-foot {
+  border-top: 1px solid var(--line);
+  padding: 30px 0 50px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.s-foot a { color: var(--ink-2); }
+
+@media (max-width: 640px) {
+  .stats { gap: 26px; }
+  .role-why, .role-cmd { margin-left: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .role { transition: none; }
+}
