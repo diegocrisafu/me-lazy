@@ -984,13 +984,28 @@ async function fillChoiceGroups(page, answers, ctx) {
     else if (r.status === 'consent') {
       // A single consent checkbox is just ticked.
       if (g.single && g.kind === 'checkbox') {
-        const ok = await page.evaluate((name) => {
-          const el = document.querySelector(`input[name="${CSS.escape(name)}"]`);
-          if (!el) return false;
-          if (!el.checked) el.click();
-          return el.checked;
-        }, g.name).catch(() => false);
+        // A raw DOM click misses a checkbox that is visually replaced by a
+        // styled label — Waymo's attestation is one — and the old code then
+        // recorded neither a fill nor a skip, so the whole group vanished
+        // without trace. Try the element, then its label, then the DOM.
+        let ok = false;
+        const sel = g.id ? `#${CSS.escape(g.id)}` : `input[name="${CSS.escape(g.name)}"]`;
+        const box = await page.$(sel).catch(() => null);
+        if (box) {
+          await box.check({ timeout: 3000 }).catch(() => {});
+          ok = await box.isChecked().catch(() => false);
+          if (!ok && g.id) {
+            await page.click(`label[for="${CSS.escape(g.id)}"]`, { timeout: 3000 }).catch(() => {});
+            ok = await box.isChecked().catch(() => false);
+          }
+          if (!ok) {
+            await box.evaluate(el => { if (!el.checked) el.click(); }).catch(() => {});
+            ok = await box.isChecked().catch(() => false);
+          }
+        }
         if (ok) filled.push({ field: 'consent', label: g.question, value: 'checked', kind: 'consent' });
+        else if (g.required) ctx.skipped.push({ label: g.question,
+          reason: 'consent checkbox would not tick', critical: true });
         continue;
       }
       want = ['Yes', 'I accept', 'I agree'];
@@ -1726,5 +1741,5 @@ async function confirmSubmitted(page) {
   return !stillForm;
 }
 
-module.exports = { applyTo, labelFor, findSubmit, confirmSubmitted,
+module.exports = { applyTo, labelFor, findSubmit, confirmSubmitted, fillChoiceGroups,
                    readButtonGroups, fillButtonGroups, openForm, CV_DIR };
