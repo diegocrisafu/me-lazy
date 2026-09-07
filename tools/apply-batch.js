@@ -25,6 +25,7 @@ const { build } = require('./resume.js');
 const C = require('../resume-content.js');
 const TERMS = require('./keyword-terms.js');
 const cover = require('../cover-letter.js');
+const tailoredLetter = require('../tailored-letter.js');
 
 const TAILORED = path.join(__dirname, '..', 'cv', 'tailored');
 fs.mkdirSync(TAILORED, { recursive: true });
@@ -125,8 +126,14 @@ function ranker(job) {
       console.log(`  (kept the standard CV for ${job.company}: ${e.message.slice(0, 40)})`);
     }
 
-    const letter = cover.compose(job, cvProfile, settings.profile || {},
-                                 { family: job.family, level: job.level });
+    // A letter that reads the posting. The generic composer opened every one
+    // with the same line about being an "early career generalist", which is
+    // a template artefact rather than a reason to hire anyone.
+    const tl = tailoredLetter.compose(job, settings.profile || {});
+    const letter = tl.evidenceUsed
+      ? { text: tl.text }
+      : cover.compose(job, cvProfile, settings.profile || {},
+                      { family: job.family, level: job.level });
 
     const rec = { ...job, cvFile };
     let result;

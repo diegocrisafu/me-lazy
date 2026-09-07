@@ -232,7 +232,9 @@ function expectedValue(rec) {
    — so they are worth it only for a role that is worth it. S and A go; B
    and C do not, whatever else they score. */
 
-const SELECTIVE_CITIES = /new\s*york|\bnyc\b|manhattan|brooklyn|vancouver/i;
+const NEW_YORK = /new\s*york|\bnyc\b|manhattan|brooklyn/i;
+const VANCOUVER = /vancouver/i;
+const SELECTIVE_CITIES = new RegExp(NEW_YORK.source + '|' + VANCOUVER.source, 'i');
 
 /* Only when that is the whole story. Plenty of postings list several
    cities — "San Francisco, CA; New York, NY" — and one of those being New
@@ -240,11 +242,22 @@ const SELECTIVE_CITIES = /new\s*york|\bnyc\b|manhattan|brooklyn|vancouver/i;
    applies when New York or Vancouver is the only place named. */
 const OTHER_CITY = /montr[ée]al|toronto|ottawa|waterloo|calgary|edmonton|winnipeg|halifax|quebec|san\s*francisco|seattle|austin|boston|chicago|denver|atlanta|los\s*angeles|san\s*jose|palo\s*alto|mountain\s*view|sunnyvale|bellevue|remote|anywhere/i;
 
-function needsHighTier(rec) {
+/**
+ * The lowest tier worth applying at, for where this role is.
+ * @returns {'B'|'A'|null} null where the ordinary rules apply
+ */
+function floorTierFor(rec) {
   const loc = String(rec.location || '');
-  if (!SELECTIVE_CITIES.test(loc)) return false;
-  if (rec.remote) return false;
-  return !OTHER_CITY.test(loc);
+  if (!SELECTIVE_CITIES.test(loc)) return null;
+  if (rec.remote) return null;
+  if (OTHER_CITY.test(loc)) return null;
+  // New York is worth a solid role; Vancouver is a continent away and worth
+  // only a good one.
+  return NEW_YORK.test(loc) ? 'B' : 'A';
+}
+
+function needsHighTier(rec) {
+  return floorTierFor(rec) !== null;
 }
 
 const FIT_HIGH = 19;   // ~p90 of matchScore on the live queue
@@ -317,17 +330,19 @@ function assignTiers(records, opts = {}) {
   }
   // Ranked order, so the shortlist reads top-down as the order to work it.
   // A B or C role in a city that only earns a good one is not pursued.
+  const RANK = { S: 0, A: 1, B: 2, C: 3 };
   for (const x of scored) {
-    if (x.tier !== 'B' && x.tier !== 'C') continue;
-    if (!needsHighTier(x.rec)) continue;
+    const floor = floorTierFor(x.rec);
+    if (!floor) continue;
+    if (RANK[x.tier] <= RANK[floor]) continue;
     x.tier = 'X';
-    x.why = `${x.rec.location} is only worth an S or A role`;
+    x.why = `${x.rec.location} is worth ${floor === 'B' ? 'a solid' : 'a good'} role, not this one`;
   }
 
   return [...keep, ...scored.filter(x => x.tier !== 'S')];
 }
 
-const __tiers = { tierOf, assignTiers, needsHighTier, SELECTIVE_CITIES, opportunityScore, winProbability,
+const __tiers = { tierOf, assignTiers, needsHighTier, floorTierFor, SELECTIVE_CITIES, opportunityScore, winProbability,
                   expectedValue, profileOf,
                   EMPLOYER_PROFILE, S_TIER_EMPLOYERS, A_TIER_SECTORS };
 if (typeof module !== 'undefined' && module.exports) module.exports = __tiers;

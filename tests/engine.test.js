@@ -918,9 +918,14 @@ test('New York and Vancouver are pursued only for a good role', () => {
   const mk = (location, priority, matchScore) =>
     ({ id: 'x' + priority, companyId: 'c' + priority, company: 'C', location,
        priority, matchScore, sector: 'tech', region: 'US' });
+  // New York takes a solid role; Vancouver only a good one.
+  assert.equal(tiers.floorTierFor({ location: 'New York, NY' }), 'B');
+  assert.equal(tiers.floorTierFor({ location: 'Vancouver, BC' }), 'A');
+  assert.equal(tiers.floorTierFor({ location: 'Toronto, ON' }), null);
+
   const out = tiers.assignTiers([mk('New York, NY', 20, 5), mk('Toronto, ON', 20, 5)]);
   const ny = out.find(x => x.rec.location === 'New York, NY');
   const to = out.find(x => x.rec.location === 'Toronto, ON');
-  assert.equal(ny.tier, 'X');
+  assert.equal(ny.tier, 'X');            // C in New York is still too low
   assert.notEqual(to.tier, 'X');
 });

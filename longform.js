@@ -79,12 +79,18 @@ function pick(job, max = 2) {
   return scored.slice(0, max).map(([, s]) => s);
 }
 
-/** A concrete hook from the posting, so the answer is about them. */
+/** A concrete hook from the posting, so the answer is about them.
+    Shared with the cover letter, which does the same job more carefully —
+    filtering out culture copy, company taglines and sentences about the
+    candidate rather than the work. */
 function hook(job) {
-  const d = String(job.description || '');
-  const m = d.match(/(?:you (?:will|'ll) (?:be )?(?:work(?:ing)? on|build(?:ing)?|design(?:ing)?)|the team (?:builds|owns|is building))\s+([^.\n]{15,110})/i);
-  if (m) return m[1].replace(/\s+/g, ' ').trim().replace(/[,;]$/, '');
-  return null;
+  try {
+    return require('./tailored-letter.js').whatTheyDo(job);
+  } catch {
+    const d = String(job.description || '');
+    const m = d.match(/(?:you (?:will|'ll) (?:be )?(?:work(?:ing)? on|build(?:ing)?|design(?:ing)?)|the team (?:builds|owns|is building))\s+([^.\n]{15,110})/i);
+    return m ? m[1].replace(/\s+/g, ' ').trim().replace(/[,;]$/, '') : null;
+  }
 }
 
 const KINDS = {
