@@ -225,6 +225,28 @@ function expectedValue(rec) {
            parts: { ...prize.parts, ...odds.parts } };
 }
 
+
+/* ─────────── PLACES THAT ONLY EARN A GOOD ROLE ───────────
+   Montreal is home and Toronto is a move you would make for most things.
+   New York and Vancouver are a bigger disruption — a border or a continent
+   — so they are worth it only for a role that is worth it. S and A go; B
+   and C do not, whatever else they score. */
+
+const SELECTIVE_CITIES = /new\s*york|\bnyc\b|manhattan|brooklyn|vancouver/i;
+
+/* Only when that is the whole story. Plenty of postings list several
+   cities — "San Francisco, CA; New York, NY" — and one of those being New
+   York is no reason to drop a role you could take in the other. The gate
+   applies when New York or Vancouver is the only place named. */
+const OTHER_CITY = /montr[ée]al|toronto|ottawa|waterloo|calgary|edmonton|winnipeg|halifax|quebec|san\s*francisco|seattle|austin|boston|chicago|denver|atlanta|los\s*angeles|san\s*jose|palo\s*alto|mountain\s*view|sunnyvale|bellevue|remote|anywhere/i;
+
+function needsHighTier(rec) {
+  const loc = String(rec.location || '');
+  if (!SELECTIVE_CITIES.test(loc)) return false;
+  if (rec.remote) return false;
+  return !OTHER_CITY.test(loc);
+}
+
 const FIT_HIGH = 19;   // ~p90 of matchScore on the live queue
 const PRIO_HIGH = 48;  // ~p90 of priority
 const FIT_MID = 15;
@@ -294,10 +316,18 @@ function assignTiers(records, opts = {}) {
     keep.push(x);
   }
   // Ranked order, so the shortlist reads top-down as the order to work it.
+  // A B or C role in a city that only earns a good one is not pursued.
+  for (const x of scored) {
+    if (x.tier !== 'B' && x.tier !== 'C') continue;
+    if (!needsHighTier(x.rec)) continue;
+    x.tier = 'X';
+    x.why = `${x.rec.location} is only worth an S or A role`;
+  }
+
   return [...keep, ...scored.filter(x => x.tier !== 'S')];
 }
 
-const __tiers = { tierOf, assignTiers, opportunityScore, winProbability,
+const __tiers = { tierOf, assignTiers, needsHighTier, SELECTIVE_CITIES, opportunityScore, winProbability,
                   expectedValue, profileOf,
                   EMPLOYER_PROFILE, S_TIER_EMPLOYERS, A_TIER_SECTORS };
 if (typeof module !== 'undefined' && module.exports) module.exports = __tiers;

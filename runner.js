@@ -128,12 +128,16 @@ function decide(state, cfg = {}) {
   // roles most worth winning is the one thing this system can do that is
   // worse than doing nothing: the application is spent either way, and most
   // of these employers will not look at a second one.
-  const shortlist = (TIERS && c.holdShortlist !== false)
-    ? new Set(TIERS.assignTiers(queue).filter(x => x.tier === 'S').map(x => x.rec.id))
-    : new Set();
+  const tiered = (TIERS && c.holdShortlist !== false) ? TIERS.assignTiers(queue) : [];
+  const shortlist = new Set(tiered.filter(x => x.tier === 'S').map(x => x.rec.id));
+
+  // New York and Vancouver are only pursued for a role worth the move, so a
+  // B or C there is dropped rather than applied to.
+  const notWorthTheMove = new Set(tiered.filter(x => x.tier === 'X').map(x => x.rec.id));
 
   const eligible = queue.filter(j =>
-    (perCompany[j.companyId] || 0) < c.perCompanyDailyCap && !shortlist.has(j.id));
+    (perCompany[j.companyId] || 0) < c.perCompanyDailyCap &&
+    !shortlist.has(j.id) && !notWorthTheMove.has(j.id));
 
   if (!eligible.length) {
     return queue.length

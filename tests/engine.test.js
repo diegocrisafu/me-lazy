@@ -897,3 +897,30 @@ test('a Workday session unlocks one employer, not all of them', () => {
   // Workday accounts are per employer, so TD's must not open BMO's.
   assert.equal(runner.applyability(bmo, {}, held).canAuto, false);
 });
+
+test('New York and Vancouver are pursued only for a good role', () => {
+  const tiers = require('../tiers.js');
+
+  // Only worth the move for something worth moving for.
+  assert.equal(tiers.needsHighTier({ location: 'New York, New York' }), true);
+  assert.equal(tiers.needsHighTier({ location: 'Vancouver, BC' }), true);
+
+  // Home and the cities already preferred are unaffected.
+  assert.equal(tiers.needsHighTier({ location: 'Montreal, QC' }), false);
+  assert.equal(tiers.needsHighTier({ location: 'Toronto, ON' }), false);
+
+  // A posting that names another city too is available in that one, so New
+  // York appearing in the list is no reason to drop it.
+  assert.equal(tiers.needsHighTier({ location: 'San Francisco, CA; New York, NY' }), false);
+  assert.equal(tiers.needsHighTier({ location: 'New York, NY' , remote: true }), false);
+
+  // And the gate demotes B and C there, leaving S and A alone.
+  const mk = (location, priority, matchScore) =>
+    ({ id: 'x' + priority, companyId: 'c' + priority, company: 'C', location,
+       priority, matchScore, sector: 'tech', region: 'US' });
+  const out = tiers.assignTiers([mk('New York, NY', 20, 5), mk('Toronto, ON', 20, 5)]);
+  const ny = out.find(x => x.rec.location === 'New York, NY');
+  const to = out.find(x => x.rec.location === 'Toronto, ON');
+  assert.equal(ny.tier, 'X');
+  assert.notEqual(to.tier, 'X');
+});
