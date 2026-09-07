@@ -25,6 +25,18 @@
 
 const COMPANIES = [
 
+  /* Verified by probing the endpoint, not by guessing a tenant. */
+  { id:'roblox', name:'Roblox', tier:1, country:'US', sector:'bigtech', ats:'greenhouse',
+    token:'roblox', verified:true, jobs:230,
+    oa:{ likelihood:0.75, platform:'CodeSignal', note:'Large new-grad intake' } },
+  { id:'morganstanley', name:'Morgan Stanley', tier:1, country:'US', sector:'bank', ats:'workday',
+    host:'ms.wd5.myworkdayjobs.com', tenant:'ms', site:'External', verified:true, jobs:217,
+    oa:{ likelihood:0.6, platform:'HackerRank', note:'Technology analyst programme' } },
+  { id:'sunlife', name:'Sun Life', tier:2, country:'CA', sector:'bank', ats:'workday',
+    host:'sunlife.wd3.myworkdayjobs.com', tenant:'sunlife', site:'Experienced-Jobs',
+    verified:true, jobs:29,
+    oa:{ likelihood:0.5, platform:'HackerRank', note:'Toronto and Montreal technology roles' } },
+
   /* ── Remote-friendly and well-known, added after probing each ATS
      endpoint rather than guessing a token. Every one of these returned
      live postings. Several are remote-first, which now ranks above

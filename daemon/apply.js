@@ -279,6 +279,16 @@ async function fillField(page, handle, info, answers, ctx) {
       return { field: r.ruleId, label, value: rendered, kind: 'combobox' };
     }
 
+    // A location typeahead is not an ordinary text box: Lever pairs a visible
+    // .location-input with a hidden selectedLocation, and typing alone leaves
+    // the hidden one empty, so the form stays invalid. The suggestion has to
+    // be picked.
+    if (/location/i.test(String(info.name || info.id || '') + ' ' + label) &&
+        info.tag === 'input' && info.type === 'text') {
+      const chosen = await fillTypeahead(page, handle, String(r.value));
+      if (chosen) return { field: r.ruleId, label, value: chosen, kind: 'typeahead' };
+    }
+
     await handle.fill(String(r.value), { timeout: 3000 }).catch(() => {});
     // Read back — a fill that React discards is worse than no fill at all,
     // because it reports success while leaving a required field empty.
@@ -531,6 +541,57 @@ async function pickSoleAffirmative(page, input) {
   await clickOptionAt(page, pick.i);
   await page.waitForTimeout(300);
   return readComboValue(page, input);
+}
+
+/* Type, wait for the menu, take the first suggestion. Used for location
+   fields, which pair a visible input with a hidden value that only a real
+   selection sets. */
+async function fillTypeahead(page, handle, value) {
+  await handle.scrollIntoViewIfNeeded({ timeout: 2000 }).catch(() => {});
+  await handle.click({ timeout: 3000 }).catch(() => {});
+  await handle.fill('').catch(() => {});
+  await handle.type(String(value).split(',')[0], { delay: 60 }).catch(() => {});
+  await page.waitForTimeout(1200);
+
+  const SUGGESTION = [
+    '.dropdown-location-results li', '.location-results li',
+    '[class*="location"] [role="option"]', '[role="listbox"] [role="option"]',
+    '[class*="suggestion"] li', '[class*="autocomplete"] li', 'ul[class*="result"] li'
+  ];
+  for (const sel of SUGGESTION) {
+    const n = await page.$$eval(sel, els =>
+      els.filter(e => e.offsetParent || e.getClientRects().length).length).catch(() => 0);
+    if (!n) continue;
+    const text = await page.$$eval(sel, els => {
+      const vis = els.filter(e => e.offsetParent || e.getClientRects().length);
+      if (!vis.length) return '';
+      vis[0].click();
+      return (vis[0].textContent || '').replace(/\s+/g, ' ').trim();
+    }).catch(() => '');
+    if (text) {
+      await page.waitForTimeout(400);
+      return text;
+    }
+  }
+  // No menu appeared — Lever's location lookup is network-backed and does not
+  // always return. The visible box is only half the control: a hidden
+  // selectedLocation carries the value the form actually reads, and it stays
+  // empty when nothing is picked. Setting it to what was typed is the same
+  // answer a person picking from the menu would give.
+  const typed = await handle.inputValue().catch(() => '');
+  if (typed) {
+    await handle.evaluate((el, v) => {
+      const form = el.closest('form') || document;
+      const hidden = form.querySelector(
+        'input[type="hidden"][name*="ocation" i], input[type="hidden"][id*="ocation" i]');
+      if (hidden && !hidden.value) {
+        hidden.value = v;
+        hidden.dispatchEvent(new Event('input', { bubbles: true }));
+        hidden.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, typed).catch(() => {});
+  }
+  return typed || null;
 }
 
 async function fillCombobox(page, input, value, ruleId = null) {
