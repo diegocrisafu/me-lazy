@@ -23,7 +23,8 @@ const VARIANTS = {
   swe:     { tag: 'swe',     label: 'Software Engineer' },
   quant:   { tag: 'quant',   label: 'Quantitative Developer' },
   data:    { tag: 'data',    label: 'Data Engineer' },
-  analyst: { tag: 'analyst', label: 'Business Analyst' }
+  analyst: { tag: 'analyst', label: 'Business Analyst' },
+  amazon:  { tag: 'amazon',  label: 'Amazon SDE' }
 };
 
 /** Page count read from the PDF itself. */

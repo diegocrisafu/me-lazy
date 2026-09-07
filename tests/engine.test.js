@@ -258,8 +258,11 @@ test('the conditional-claim variant is withheld from internships with no return 
     description: 'Low latency C++ systems. Algorithms and data structures. Strong problem solving.' };
   const pick = cvsel.selectCV(job, target.evaluate(job, { found: false }), CV_PROFILES);
   assert.notEqual(pick.profile.id, 'big-tech');
+  // Reported as withheld by name. The reason string describes why the
+  // winner won, and once a better variant wins on merit that string stops
+  // mentioning withholding — which is not the guarantee worth asserting.
   assert.ok(pick.withheld, 'the withheld variant must be reported');
-  assert.match(pick.reason, /withheld/i);
+  assert.equal(pick.withheld.id, 'big-tech');
 });
 
 test('the conditional-claim variant never goes to a new-grad posting', { skip: CV_PROFILES.length < 3 ? 'running against cv-profiles.example.js' : false }, () => {
