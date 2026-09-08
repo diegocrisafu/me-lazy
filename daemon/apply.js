@@ -989,13 +989,17 @@ async function fillChoiceGroups(page, answers, ctx) {
         // recorded neither a fill nor a skip, so the whole group vanished
         // without trace. Try the element, then its label, then the DOM.
         let ok = false;
-        const sel = g.id ? `#${CSS.escape(g.id)}` : `input[name="${CSS.escape(g.name)}"]`;
+        // Built in Node, where CSS.escape does not exist — quote the value in
+        // an attribute selector instead, which needs no escaping for the
+        // brackets Greenhouse puts in field names.
+        const q = v => `"${String(v).replace(/"/g, '\\"')}"`;
+        const sel = g.id ? `[id=${q(g.id)}]` : `input[name=${q(g.name)}]`;
         const box = await page.$(sel).catch(() => null);
         if (box) {
           await box.check({ timeout: 3000 }).catch(() => {});
           ok = await box.isChecked().catch(() => false);
           if (!ok && g.id) {
-            await page.click(`label[for="${CSS.escape(g.id)}"]`, { timeout: 3000 }).catch(() => {});
+            await page.click(`label[for=${q(g.id)}]`, { timeout: 3000 }).catch(() => {});
             ok = await box.isChecked().catch(() => false);
           }
           if (!ok) {
