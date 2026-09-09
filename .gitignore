@@ -16,3 +16,9 @@ cv/tailored/
 # Copy cv-profiles.example.js -> cv-profiles.js and fill in locally.
 cv-profiles.js
 resume-content.js
+
+# The session transcript. It contains your home address, your GPA, salary
+# expectations and a redacted password — none of which belongs in a repo
+# that answers unauthenticated requests. Generate it when you want it:
+#   node tools/transcript-to-md.js <transcript.jsonl> CONVERSATION.md
+CONVERSATION.md
