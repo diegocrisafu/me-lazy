@@ -19,8 +19,14 @@
 const fs = require('fs');
 const path = require('path');
 
-const src = process.argv[2];
-const out = process.argv[3] || 'CONVERSATION.md';
+const args = process.argv.slice(2).filter(a => !a.startsWith('--'));
+const flags = new Set(process.argv.slice(2).filter(a => a.startsWith('--')));
+const PLAIN = flags.has('--plain');     // no markdown syntax, for pasting
+const BRIEF = flags.has('--brief');     // your turns and the replies' first lines
+const DIGEST = flags.has('--digest');   // your turns verbatim, one line per reply
+
+const src = args[0];
+const out = args[1] || (PLAIN ? 'conversation.txt' : 'CONVERSATION.md');
 if (!src || !fs.existsSync(src)) {
   console.log('Usage: node tools/transcript-to-md.js <transcript.jsonl> [out.md]');
   process.exit(1);
@@ -85,15 +91,32 @@ function redact(t) {
 const parts = [];
 let turn = 0;
 let pendingTools = [];
+let digestLines = [];
 
 function flushTools() {
   if (!pendingTools.length) return;
   const counts = {};
   for (const t of pendingTools) counts[t.name] = (counts[t.name] || 0) + 1;
   const summary = Object.entries(counts)
-    .map(([n, c]) => c > 1 ? `${n} ×${c}` : n).join(', ');
-  parts.push(`<sub>*worked with: ${summary}*</sub>\n`);
+    .map(([n, c]) => c > 1 ? `${n} x${c}` : n).join(', ');
+  if (!BRIEF) {
+    parts.push(PLAIN ? `   [worked with: ${summary}]\n`
+                     : `<sub>*worked with: ${summary}*</sub>\n`);
+  }
   pendingTools = [];
+}
+
+/* In brief mode a reply is represented by its opening — enough to know what
+   was said without reproducing the whole thing. */
+function shorten(t) {
+  if (!BRIEF) return t;
+  const sentences = t.replace(/\n+/g, ' ').split(/(?<=[.!?])\s+/);
+  let outp = '';
+  for (const sn of sentences) {
+    if ((outp + sn).length > 420) break;
+    outp += (outp ? ' ' : '') + sn;
+  }
+  return (outp || t.slice(0, 420)).trim() + (outp.length < t.length ? ' […]' : '');
 }
 
 for (const d of rows) {
@@ -106,22 +129,45 @@ for (const d of rows) {
     // An image-only turn carries no words worth quoting.
     if (/^\[Image:[^\]]*\]\s*$/.test(t)) {
       flushTools(); turn++;
-      parts.push(`\n---\n\n## ${turn}. Diego  <sub>screenshot</sub>\n\n> *(sent a screenshot)*\n`);
+      parts.push(PLAIN
+        ? `\n${'='.repeat(72)}\nDIEGO\n${'='.repeat(72)}\n\n(sent a screenshot)\n`
+        : `\n---\n\n## ${turn}. Diego  <sub>screenshot</sub>\n\n> *(sent a screenshot)*\n`);
       continue;
     }
     flushTools();
     turn++;
     const when = d.timestamp ? new Date(d.timestamp).toISOString().replace('T', ' ').slice(0, 16) : '';
-    parts.push(`\n---\n\n## ${turn}. Diego${when ? `  <sub>${when}</sub>` : ''}\n\n> ${t.split('\n').join('\n> ')}\n`);
+    if (DIGEST && digestLines.length) {
+      parts.push(digestLines.slice(0, 6).map(l => `   - ${l}`).join('\n') +
+                 (digestLines.length > 6 ? `\n   - (+${digestLines.length - 6} more replies)` : '') + '\n');
+      digestLines = [];
+    }
+    parts.push(PLAIN
+      ? `\n${'='.repeat(72)}\nDIEGO${when ? '  (' + when + ')' : ''}\n${'='.repeat(72)}\n\n${t}\n`
+      : `\n---\n\n## ${turn}. Diego${when ? `  <sub>${when}</sub>` : ''}\n\n> ${t.split('\n').join('\n> ')}\n`);
     continue;
   }
 
   // assistant
   const t = redact(clean(textOf(msg)));
   pendingTools.push(...toolsOf(msg));
-  if (t) { flushTools(); parts.push(`\n### Claude\n\n${t}\n`); }
+  if (t) {
+    if (DIGEST) {
+      // One line: the first sentence of the reply, which is almost always
+      // the finding or the decision. The rest is working.
+      const first = t.replace(/\n+/g, ' ').split(/(?<=[.!?])\s+/)[0] || t;
+      digestLines.push(first.slice(0, 170).trim());
+      continue;
+    }
+    flushTools();
+    const body = shorten(t);
+    parts.push(PLAIN ? `\nCLAUDE\n------\n\n${body}\n` : `\n### Claude\n\n${body}\n`);
+  }
 }
 flushTools();
+if (DIGEST && digestLines.length) {
+  parts.push(digestLines.slice(0, 6).map(l => `   - ${l}`).join('\n') + '\n');
+}
 
 const first = rows[0]?.timestamp ? new Date(rows[0].timestamp) : null;
 const last = rows[rows.length - 1]?.timestamp ? new Date(rows[rows.length - 1].timestamp) : null;
@@ -148,6 +194,19 @@ is kept whole.
 
 `;
 
-fs.writeFileSync(out, header + parts.join('\n'));
+const plainHeader = `BUILDING AN AUTONOMOUS JOB-APPLICATION SYSTEM
+${'='.repeat(72)}
+
+A record of the session that built it, converted from the session transcript.
+
+Started      ${fmt(first)}
+Ended        ${fmt(last)}
+Human turns  ${turn}
+Messages     ${rows.length.toLocaleString()}
+Repository   me-lazy
+
+`;
+
+fs.writeFileSync(out, (PLAIN ? plainHeader : header) + parts.join('\n'));
 const kb = (fs.statSync(out).size / 1024).toFixed(0);
 console.log(`${out} — ${turn} human turns, ${rows.length.toLocaleString()} messages, ${kb} KB`);

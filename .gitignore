@@ -21,4 +21,6 @@ resume-content.js
 # expectations and a redacted password — none of which belongs in a repo
 # that answers unauthenticated requests. Generate it when you want it:
 #   node tools/transcript-to-md.js <transcript.jsonl> CONVERSATION.md
+conversation*.txt
 CONVERSATION.md
+conversation*.txt
