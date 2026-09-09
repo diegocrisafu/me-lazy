@@ -156,7 +156,12 @@ function winProbability(rec) {
     /\b(senior|staff|principal|lead|manager|director|head\s+of|architect|sr\.?)\b/i.test(title) ? 0.05 :
     rec.level === 'intern' ? 1.0 :
     rec.level === 'newgrad' ? 0.85 :
-    0.35;   // an unmarked title is usually mid-level
+    // A stretch role is worth applying to and worth applying to *after* the
+    // ones written for you. Ninety of the first hundred and forty-one
+    // applications went to this band and nine went to right-level roles at
+    // product companies, which is backwards: the model penalised stretch and
+    // was outvoted by how much of it there is.
+    0.18;
 
   // How much a specialist seat wants something you do not have. An FPGA or
   // PhD-flavoured research seat is not winnable off this CV, however well
