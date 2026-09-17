@@ -1,0 +1,8 @@
+# Data Time Machine
+
+An open-source pipeline investigation lab by Diego Crisafulli.
+
+The app demonstrates deterministic replay, immutable snapshots, event-level lineage, schema migration, deduplication and event-time lateness handling. All example transaction data is synthetic. Processing runs locally in a Web Worker; there is no production data connection or backend database.
+
+Source and documentation: https://github.com/diegocrisafu/me-lazy
+Live demo: https://diegocrisafu.github.io/me-lazy/
