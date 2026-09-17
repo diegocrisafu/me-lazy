@@ -338,7 +338,7 @@ h1 {
 }
 .furniture-text small {
   font-size: 10px;
-  color: #65725e;
+  color: #5e6c57;
   font-variant-numeric: tabular-nums;
 }
 .add-furniture {
@@ -360,7 +360,7 @@ h1 {
   gap: 11px;
   padding: 16px 8px 10px;
   margin-top: auto;
-  color: #65725e;
+  color: #5e6c57;
 }
 .shelf-note p {
   font-size: 10px;
@@ -637,7 +637,7 @@ h1 {
 }
 .section-label span {
   font-size: 10px;
-  color: #65725e;
+  color: #5e6c57;
   font-weight: 400;
 }
 .dimension-fields,
@@ -648,7 +648,7 @@ h1 {
 }
 .dimension-fields label {
   font-size: 10px;
-  color: #65725e;
+  color: #5e6c57;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -700,7 +700,7 @@ h1 {
   flex-direction: column;
   gap: 5px;
   font-size: 10px;
-  color: #65725e;
+  color: #5e6c57;
 }
 .position-fields input {
   padding-right: 18px;
@@ -891,7 +891,7 @@ footer {
   align-items: center;
   justify-content: space-between;
   border-top: 1px solid var(--line);
-  color: #707b66;
+  color: #626e58;
   font-size: 10px;
   gap: 20px;
 }
