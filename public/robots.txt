@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://diegocrisafu.github.io/sitemap.xml

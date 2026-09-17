@@ -1,0 +1,5 @@
+# RoomFit
+> An interactive room planner by Diego Crisafulli.
+Move and resize furniture in 3D or plan view. Geometric checks detect overlaps, room-boundary crossings, and doorway clearance obstructions. Local storage preserves the layout. JSON exports are portable. No accounts or analytics.
+Source: https://github.com/diegocrisafu/me-lazy
+Limitations: rectangular footprints; sampled floor coverage; not a delivery-path or building-code certification tool.

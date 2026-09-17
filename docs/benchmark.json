@@ -1,0 +1,16 @@
+{
+  "measuredAt": "2026-09-17T18:20:08.544Z",
+  "runtime": "v23.11.0",
+  "cpu": "Apple M3 Pro",
+  "scenario": "40 chairs in a 10 × 10 m room",
+  "collision": {
+    "iterations": 50,
+    "medianMs": 0.487,
+    "p95Ms": 0.706
+  },
+  "floorCoverage": {
+    "iterations": 30,
+    "medianMs": 5.107,
+    "p95Ms": 8.385
+  }
+}
